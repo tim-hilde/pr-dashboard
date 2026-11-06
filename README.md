@@ -35,7 +35,15 @@ prs
 
 ## tmux popup
 
-`prefix + g` opens the dashboard in a centered popup that covers 90 percent of the width and 85 percent of the height. The popup closes when the dashboard exits.
+`prefix + g` opens the dashboard in a centered popup that covers 70 percent of the width and 55 percent of the height. The popup closes when the dashboard exits.
+
+## Cache
+
+- The first start fetches the pull requests.
+- Later starts show the cache immediately.
+- The cache lives at `~/.cache/pr-dashboard/prs.json`.
+- The cache refreshes every 60 seconds and on `r`.
+- The cache is local and read-only.
 
 ## Tests
 
@@ -48,3 +56,5 @@ bun test
 The dashboard is read-only. It never changes a pull request.
 
 The dashboard reads GitHub through the `gh` command. You must install the GitHub CLI and run `gh auth login` once. The dashboard never reads or stores your GitHub token.
+
+The cache is a local copy of the last successful response.
