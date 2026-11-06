@@ -1,0 +1,139 @@
+{
+  "data": {
+    "search": {
+      "issueCount": 3,
+      "nodes": [
+        {
+          "number": 876,
+          "title": "feat(krise): let admins add web pages",
+          "isDraft": false,
+          "url": "https://github.com/Merlin-Digital-Solutions/merlin-dashboard/pull/876",
+          "updatedAt": "2026-11-06T10:30:00Z",
+          "headRefName": "feature/admin-pages",
+          "baseRefName": "main",
+          "repository": {
+            "nameWithOwner": "Merlin-Digital-Solutions/merlin-dashboard"
+          },
+          "commits": {
+            "nodes": [
+              {
+                "commit": {
+                  "committedDate": "2026-11-06T08:00:00Z",
+                  "statusCheckRollup": {
+                    "state": "FAILURE",
+                    "contexts": {
+                      "nodes": [
+                        {
+                          "__typename": "CheckRun",
+                          "name": "unit",
+                          "conclusion": "FAILURE",
+                          "detailsUrl": "https://github.com/example/actions/runs/1"
+                        },
+                        {
+                          "__typename": "CheckRun",
+                          "name": "lint",
+                          "conclusion": "FAILURE",
+                          "detailsUrl": "https://github.com/example/actions/runs/2"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          "comments": {
+            "nodes": [
+              {
+                "body": "This human comment quotes the marker <!-- codex-review --> but a human wrote it.",
+                "url": "https://github.com/Merlin-Digital-Solutions/merlin-dashboard/pull/876#issuecomment-3",
+                "createdAt": "2026-11-06T10:00:00Z",
+                "author": { "login": "octocat" }
+              },
+              {
+                "body": "<!-- codex-security-review -->\n\n## Verdict\n\n**🔄 Request Changes** — address the security findings before merge.",
+                "url": "https://github.com/Merlin-Digital-Solutions/merlin-dashboard/pull/876#issuecomment-2",
+                "createdAt": "2026-11-06T09:45:00Z",
+                "author": { "login": "github-actions" }
+              },
+              {
+                "body": "<!-- codex-review -->\n\n## Verdict\n\n**🔄 Request Changes** — address both blocking findings before merge.\n\n## Required Changes\n\n- Add regression coverage for the callback path.\n- Cancel the job before the next step starts.\n\n## Notes\n\nNice work otherwise.",
+                "url": "https://github.com/Merlin-Digital-Solutions/merlin-dashboard/pull/876#issuecomment-1",
+                "createdAt": "2026-11-06T09:30:00Z",
+                "author": { "login": "github-actions" }
+              }
+            ]
+          }
+        },
+        {
+          "number": 930,
+          "title": "feat(crisis): Krisentelefon als Schicht auf dem Bürgertelefon",
+          "isDraft": true,
+          "url": "https://github.com/Merlin-Digital-Solutions/merlin-spricht/pull/930",
+          "updatedAt": "2026-11-06T09:00:00Z",
+          "headRefName": "feature/crisis-phone",
+          "baseRefName": "main",
+          "repository": {
+            "nameWithOwner": "Merlin-Digital-Solutions/merlin-spricht"
+          },
+          "commits": {
+            "nodes": [
+              {
+                "commit": {
+                  "committedDate": "2026-11-06T07:00:00Z",
+                  "statusCheckRollup": {
+                    "state": "PENDING",
+                    "contexts": {
+                      "nodes": [
+                        {
+                          "__typename": "CheckRun",
+                          "name": "unit",
+                          "conclusion": null
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          "comments": {
+            "nodes": [
+              {
+                "body": "<!-- codex-review -->\n\n## Verdict\n\n**[x] ✅ Approve** — No blocking findings from static review.\n\n## Required Changes\n\nNone.",
+                "url": "https://github.com/Merlin-Digital-Solutions/merlin-spricht/pull/930#issuecomment-4",
+                "createdAt": "2026-11-06T08:00:00Z",
+                "author": { "login": "github-actions" }
+              }
+            ]
+          }
+        },
+        {
+          "number": 643,
+          "title": "fix: pagination on reports",
+          "isDraft": false,
+          "url": "https://github.com/Merlin-Digital-Solutions/merlin-dashboard/pull/643",
+          "updatedAt": "2026-11-05T15:00:00Z",
+          "headRefName": "fix/pagination",
+          "baseRefName": "main",
+          "repository": {
+            "nameWithOwner": "Merlin-Digital-Solutions/merlin-dashboard"
+          },
+          "commits": {
+            "nodes": [
+              {
+                "commit": {
+                  "committedDate": "2026-11-05T14:00:00Z",
+                  "statusCheckRollup": null
+                }
+              }
+            ]
+          },
+          "comments": {
+            "nodes": []
+          }
+        }
+      ]
+    }
+  }
+}
