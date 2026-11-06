@@ -1,7 +1,11 @@
 import { expect, test } from "bun:test";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { PassThrough, Writable } from "node:stream";
 import { render, renderToString } from "ink";
 import { App } from "../src/app";
+import { writeCache } from "../src/cache";
 import type { FetchResult } from "../src/github";
 import type { PullRequest } from "../src/types";
 
@@ -44,6 +48,14 @@ const emptyLoad = async () => emptyResult;
 const failLoad = async () => {
   throw new Error("gh: Not logged in");
 };
+
+const cachedSample = { ...sample, number: 999, title: "cached row" };
+let loadCalls = 0;
+const countingLoad = async () => {
+  loadCalls += 1;
+  return result;
+};
+
 const open = () => {};
 const now = () => new Date("2026-11-06T12:00:00Z");
 
@@ -106,7 +118,7 @@ function renderLive(
 
 test("renders the loading header and footer on first render", () => {
   const output = renderToString(
-    <App load={emptyLoad} />,
+    <App load={emptyLoad} cachePath={null} />,
     { columns: 120 },
   );
   expect(output).toContain("Merlin-Digital-Solutions");
@@ -119,7 +131,13 @@ test("renders the loading header and footer on first render", () => {
 
 test("shows both section headers with keine placeholders when empty", async () => {
   const output = await renderLive(
-    <App load={emptyLoad} open={open} now={now} intervalMs={60_000} />,
+    <App
+      load={emptyLoad}
+      open={open}
+      now={now}
+      intervalMs={60_000}
+      cachePath={null}
+    />,
   );
   expect(output).toContain("OPEN  0");
   expect(output).toContain("DRAFT  0");
@@ -133,6 +151,7 @@ test("renders the rows once loading resolves", async () => {
       open={open}
       now={now}
       intervalMs={60_000}
+      cachePath={null}
     />,
   );
   expect(output).toContain("Merlin-Digital-Solutions");
@@ -150,6 +169,7 @@ test("renders the preview pane header line once per frame", async () => {
       open={open}
       now={now}
       intervalMs={60_000}
+      cachePath={null}
     />,
     120,
   );
@@ -167,6 +187,7 @@ test("hides the preview pane on narrow terminals", async () => {
       open={open}
       now={now}
       intervalMs={60_000}
+      cachePath={null}
     />,
   );
   expect(output).not.toContain("#876 · merlin-dashboard");
@@ -179,6 +200,7 @@ test("shows the beginning of long preview lines", async () => {
       open={open}
       now={now}
       intervalMs={60_000}
+      cachePath={null}
     />,
     120,
   );
@@ -192,8 +214,96 @@ test("shows the error box when the first load fails", async () => {
       open={open}
       now={now}
       intervalMs={60_000}
+      cachePath={null}
     />,
   );
   expect(output).toContain("gh auth login");
   expect(output).toContain("Stand");
+});
+
+test("shows a fresh cache immediately and skips the fetch", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "prs-app-cache-"));
+  const cachePath = join(dir, "prs.json");
+  writeCache(cachePath, {
+    version: 1,
+    fetchedAt: "2026-11-06T12:00:00.000Z",
+    result,
+  });
+  let calls = 0;
+  const load = async () => {
+    calls += 1;
+    return result;
+  };
+  try {
+    const output = await renderLive(
+      <App
+        load={load}
+        open={open}
+        now={now}
+        intervalMs={60_000}
+        cachePath={cachePath}
+        cacheTtlMs={60_000}
+      />,
+    );
+    expect(output).toContain("#876");
+    expect(output).toContain("Cache");
+    expect(calls).toBe(0);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("shows the stale cache and refreshes it", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "prs-app-cache-"));
+  const cachePath = join(dir, "prs.json");
+  writeCache(cachePath, {
+    version: 1,
+    fetchedAt: "2026-11-06T11:50:00.000Z",
+    result: { prs: [cachedSample], total: 1 },
+  });
+  loadCalls = 0;
+  try {
+    const output = await renderLive(
+      <App
+        load={countingLoad}
+        open={open}
+        now={now}
+        intervalMs={60_000}
+        cachePath={cachePath}
+        cacheTtlMs={60_000}
+      />,
+    );
+    expect(output).toContain("#876");
+    expect(output).toContain("Stand");
+    expect(loadCalls).toBe(1);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("keeps the cached rows when the refresh fails", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "prs-app-cache-"));
+  const cachePath = join(dir, "prs.json");
+  writeCache(cachePath, {
+    version: 1,
+    fetchedAt: "2026-11-06T11:50:00.000Z",
+    result: { prs: [cachedSample], total: 1 },
+  });
+  try {
+    const output = await renderLive(
+      <App
+        load={failLoad}
+        open={open}
+        now={now}
+        intervalMs={60_000}
+        cachePath={cachePath}
+        cacheTtlMs={60_000}
+      />,
+    );
+    expect(output).toContain("#999");
+    expect(output).toContain("Cache");
+    expect(output).toContain("gh auth login");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });

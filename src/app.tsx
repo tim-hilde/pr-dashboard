@@ -1,11 +1,13 @@
 import React, {
   useCallback,
   useEffect,
+  useMemo,
   useReducer,
   useRef,
   useState,
 } from "react";
 import { Box, Text, useApp, useInput, useStdin, useWindowSize } from "ink";
+import { cacheAge, defaultCachePath, readCache, writeCache } from "./cache";
 import { describeGhError } from "./errors";
 import { fetchPullRequests, resolveLogin } from "./github";
 import type { FetchResult } from "./github";
@@ -23,6 +25,8 @@ export type AppProps = {
   open?: (url: string) => void;
   intervalMs?: number;
   now?: () => Date;
+  cachePath?: string | null;
+  cacheTtlMs?: number;
 };
 
 let cachedLogin: string | undefined;
@@ -36,6 +40,7 @@ const PREVIEW_MIN_COLUMNS = 100;
 const NUMBER_WIDTH = 6;
 const STATUS_WIDTH = 3;
 const ROW_CHROME = 14;
+const CACHE_TTL_MS = 60_000;
 
 const initialDashboard: DashboardState = {
   data: null,
@@ -64,12 +69,27 @@ export function App({
   open = defaultOpen,
   intervalMs = 60_000,
   now = defaultNow,
+  cachePath = defaultCachePath(),
+  cacheTtlMs = CACHE_TTL_MS,
 }: AppProps) {
+  const cacheEntry = useMemo(
+    () => (cachePath === null ? null : readCache(cachePath)),
+    [cachePath],
+  );
+  const initial: DashboardState =
+    cacheEntry === null
+      ? initialDashboard
+      : {
+          data: cacheEntry.result,
+          error: null,
+          lastUpdated: new Date(cacheEntry.fetchedAt),
+        };
   const [{ data, error, lastUpdated }, dispatch] = useReducer(
     applyRefresh,
-    initialDashboard,
+    initial,
   );
   const [loading, setLoading] = useState(false);
+  const [cached, setCached] = useState(cacheEntry !== null);
   const [selected, setSelectedState] = useState(0);
   const [previewOpen, setPreviewOpen] = useState(true);
   const [status, setStatus] = useState<string>();
@@ -91,7 +111,20 @@ export function App({
     setStatus(undefined);
     try {
       const result = await load();
-      dispatch({ ok: true, data: result, at: now() });
+      const at = now();
+      dispatch({ ok: true, data: result, at });
+      setCached(false);
+      if (cachePath !== null) {
+        try {
+          writeCache(cachePath, {
+            version: 1,
+            fetchedAt: at.toISOString(),
+            result,
+          });
+        } catch {
+          // A failed cache write must not break the refresh.
+        }
+      }
       setSelected(
         Math.max(0, Math.min(selectedRef.current, result.prs.length - 1)),
       );
@@ -101,13 +134,32 @@ export function App({
       inFlightRef.current = false;
       setLoading(false);
     }
-  }, [load, now]);
+  }, [load, now, cachePath]);
+
+  const initialDelay = useMemo(() => {
+    if (cacheEntry === null) return 0;
+    return Math.max(0, cacheTtlMs - cacheAge(cacheEntry, now()));
+  }, [cacheEntry, cacheTtlMs, now]);
 
   useEffect(() => {
-    void refresh();
-    const timer = setInterval(() => void refresh(), intervalMs);
-    return () => clearInterval(timer);
-  }, [refresh, intervalMs]);
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const schedule = (delay: number) => {
+      timer = setTimeout(() => {
+        void (async () => {
+          if (cancelled) return;
+          await refresh();
+          if (cancelled) return;
+          schedule(intervalMs);
+        })();
+      }, delay);
+    };
+    schedule(initialDelay);
+    return () => {
+      cancelled = true;
+      if (timer !== undefined) clearTimeout(timer);
+    };
+  }, [refresh, intervalMs, initialDelay]);
 
   const sorted = sortPullRequests(data?.prs ?? []);
   const sections: { name: "OPEN" | "DRAFT"; prs: PullRequest[] }[] = [
@@ -199,7 +251,7 @@ export function App({
       >
         <Text bold>Merlin-Digital-Solutions</Text>
         <Text dimColor>
-          {count} PRs · Stand {headerTime(lastUpdated)}
+          {count} PRs · {cached ? "Cache" : "Stand"} {headerTime(lastUpdated)}
           {loading ? " · lädt" : ""}
         </Text>
       </Box>
