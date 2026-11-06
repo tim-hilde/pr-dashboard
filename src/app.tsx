@@ -259,10 +259,7 @@ export function App({
                 borderColor="gray"
                 paddingX={1}
               >
-                <Text bold wrap="wrap">
-                  {selectedRow.pr.title}
-                </Text>
-                {previewLines.slice(1).map((line, index) => (
+                {previewLines.map((line, index) => (
                   <Text key={index} wrap="wrap" {...previewLineProps(line)}>
                     {line.text}
                   </Text>

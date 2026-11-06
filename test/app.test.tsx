@@ -26,7 +26,10 @@ const sample: PullRequest = {
   },
 };
 
-function renderLive(element: React.ReactElement): Promise<string> {
+function renderLive(
+  element: React.ReactElement,
+  columns = 80,
+): Promise<string> {
   return new Promise((resolve) => {
     let output = "";
     const stdout = new Writable({
@@ -34,7 +37,9 @@ function renderLive(element: React.ReactElement): Promise<string> {
         output += String(chunk);
         callback();
       },
-    });
+    }) as Writable & { columns: number; rows: number };
+    stdout.columns = columns;
+    stdout.rows = 40;
     const stdin = new PassThrough() as PassThrough & {
       setRawMode: (enabled: boolean) => PassThrough;
       isTTY: boolean;
@@ -88,4 +93,22 @@ test("renders the rows once loading resolves", async () => {
   expect(output).toContain("merlin-dashboard");
   expect(output).toContain("#876");
   expect(output).toContain("✗");
+});
+
+test("renders the preview pane header line once per frame", async () => {
+  const result: FetchResult = { prs: [sample], total: 1 };
+  const output = await renderLive(
+    <App
+      load={async () => result}
+      open={() => {}}
+      now={() => new Date("2026-11-06T12:00:00Z")}
+      intervalMs={60_000}
+    />,
+    120,
+  );
+  const header = "#876 · merlin-dashboard";
+  const titleLine = "feat(krise): let admins add web pages of approved";
+  const count = (needle: string) => output.split(needle).length - 1;
+  expect(count(header)).toBeGreaterThan(0);
+  expect(count(header)).toBe(count(titleLine));
 });
