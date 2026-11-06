@@ -109,6 +109,8 @@ test("formats approved Codex without extra separators", () => {
 test("links the pull request URL at the end of the preview", () => {
   const lines = buildPreviewLines(pr(), new Date("2026-11-06T12:00:00Z"));
   const last = lines[lines.length - 1];
-  expect(last?.text).toContain("https://github.com/Merlin-Digital-Solutions/merlin-dashboard/pull/876");
-  expect(last?.text).toContain("\u001b]8;;");
+  expect(last?.text).toContain("PR öffnen");
+  expect(last?.text).toContain(
+    "\u001b]8;;https://github.com/Merlin-Digital-Solutions/merlin-dashboard/pull/876\u0007",
+  );
 });

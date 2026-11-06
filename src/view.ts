@@ -100,7 +100,7 @@ export function buildPreviewLines(pr: PullRequest, now: Date): PreviewLine[] {
     }
   }
 
-  lines.push({ text: link(pr.url, pr.url) });
+  lines.push({ text: link("PR öffnen", pr.url) });
 
   return lines;
 }

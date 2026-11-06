@@ -26,6 +26,23 @@ test("ranks attention", () => {
   expect(attentionRank("approved")).toBe(4);
 });
 
+test("breaks same-repo same-attention ties by newest update", () => {
+  const input = [
+    pr({
+      number: 1,
+      codex: { state: "approved", required: [] },
+      updatedAt: "2026-11-06T09:00:00Z",
+    }),
+    pr({
+      number: 2,
+      codex: { state: "approved", required: [] },
+      updatedAt: "2026-11-06T11:00:00Z",
+    }),
+  ];
+  const { open } = sortPullRequests(input);
+  expect(open.map((p) => p.number)).toEqual([2, 1]);
+});
+
 test("splits drafts and sorts by repo, attention, then update time", () => {
   const input = [
     pr({ repoShort: "merlin-spricht", number: 1, codex: { state: "approved", required: [] } }),

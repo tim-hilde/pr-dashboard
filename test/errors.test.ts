@@ -19,3 +19,7 @@ test("explains a missing login", () => {
 test("keeps an unknown message", () => {
   expect(describeGhError(new Error("HTTP 502"))).toBe("HTTP 502");
 });
+
+test("keeps an unknown non-Error message", () => {
+  expect(describeGhError("HTTP 502")).toBe("HTTP 502");
+});

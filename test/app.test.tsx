@@ -26,11 +26,18 @@ const sample: PullRequest = {
   },
 };
 
+const result: FetchResult = { prs: [sample], total: 1 };
+const emptyResult: FetchResult = { prs: [], total: 0 };
+const load = async () => result;
+const emptyLoad = async () => emptyResult;
+const open = () => {};
+const now = () => new Date("2026-11-06T12:00:00Z");
+
 function renderLive(
   element: React.ReactElement,
   columns = 80,
 ): Promise<string> {
-  return new Promise((resolve) => {
+  return new Promise<string>((resolve, reject) => {
     let output = "";
     const stdout = new Writable({
       write(chunk, _encoding, callback) {
@@ -53,24 +60,33 @@ function renderLive(
       patchConsole: false,
       debug: true,
     });
-    const finish = () => {
+    const finish = (failure?: string) => {
       clearInterval(timer);
+      clearTimeout(timeout);
       instance.unmount();
-      void instance.waitUntilExit().then(() => resolve(output));
+      void instance.waitUntilExit().then(() => {
+        if (failure === undefined) resolve(output);
+        else reject(new Error(failure));
+      });
     };
     const timer = setInterval(() => {
       if (output.includes("keine") || output.includes("#876")) finish();
     }, 20);
-    setTimeout(() => {
-      if (output === "") return;
-      finish();
+    const timeout = setTimeout(() => {
+      if (output === "") {
+        finish(
+          `renderLive captured no output after 2 s: ${JSON.stringify(output)}`,
+        );
+      } else {
+        finish();
+      }
     }, 2_000);
   });
 }
 
 test("renders the loading header and footer on first render", () => {
   const output = renderToString(
-    <App load={async () => ({ prs: [], total: 0 })} />,
+    <App load={emptyLoad} />,
     { columns: 120 },
   );
   expect(output).toContain("Merlin-Digital-Solutions · 0 PRs");
@@ -79,13 +95,21 @@ test("renders the loading header and footer on first render", () => {
   expect(output).toContain("q beenden");
 });
 
+test("shows both section headers with keine placeholders when empty", async () => {
+  const output = await renderLive(
+    <App load={emptyLoad} open={open} now={now} intervalMs={60_000} />,
+  );
+  expect(output).toContain("OPEN");
+  expect(output).toContain("DRAFT");
+  expect(output).toContain("keine");
+});
+
 test("renders the rows once loading resolves", async () => {
-  const result: FetchResult = { prs: [sample], total: 1 };
   const output = await renderLive(
     <App
-      load={async () => result}
-      open={() => {}}
-      now={() => new Date("2026-11-06T12:00:00Z")}
+      load={load}
+      open={open}
+      now={now}
       intervalMs={60_000}
     />,
   );
@@ -96,12 +120,11 @@ test("renders the rows once loading resolves", async () => {
 });
 
 test("renders the preview pane header line once per frame", async () => {
-  const result: FetchResult = { prs: [sample], total: 1 };
   const output = await renderLive(
     <App
-      load={async () => result}
-      open={() => {}}
-      now={() => new Date("2026-11-06T12:00:00Z")}
+      load={load}
+      open={open}
+      now={now}
       intervalMs={60_000}
     />,
     120,
