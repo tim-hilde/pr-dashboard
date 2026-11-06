@@ -341,16 +341,6 @@ export function App({
                               <Text color={THEME.muted}>
                                 {cells.number.padStart(NUMBER_WIDTH)}{" "}
                               </Text>
-                              <Box
-                                width={titleWidth}
-                                flexShrink={1}
-                                flexDirection="column"
-                              >
-                                <Text color={THEME.text} wrap="truncate">
-                                  {cells.title}
-                                </Text>
-                              </Box>
-                              <Text> </Text>
                               <Box width={STATUS_WIDTH}>
                                 <Text color={THEME[ciColor(pr.ci.state)]}>
                                   {cells.ci}
@@ -358,6 +348,16 @@ export function App({
                                 <Text> </Text>
                                 <Text color={THEME[codexColor(pr.codex.state)]}>
                                   {cells.codex}
+                                </Text>
+                              </Box>
+                              <Text> </Text>
+                              <Box
+                                width={titleWidth}
+                                flexShrink={1}
+                                flexDirection="column"
+                              >
+                                <Text color={THEME.text} wrap="truncate">
+                                  {cells.title}
                                 </Text>
                               </Box>
                             </Box>

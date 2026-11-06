@@ -2,7 +2,7 @@
 
 A read-only terminal dashboard for the open pull requests that you authored in the Merlin-Digital-Solutions organization.
 
-The dashboard shows one row per pull request. Each row lists the repository, the pull request number, the title, the CI state, and the Codex review state. A preview pane on the right shows details of the selected pull request. The preview hides when the terminal is narrower than 100 columns.
+The dashboard shows one row per pull request. Each row lists the repository, the pull request number, the CI state, the Codex review state, and the title. A preview pane on the right shows details of the selected pull request. The preview hides when the terminal is narrower than 100 columns.
 
 ## Install
 

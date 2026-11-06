@@ -62,6 +62,10 @@ const now = () => new Date("2026-11-06T12:00:00Z");
 function renderLive(
   element: React.ReactElement,
   columns = 80,
+  until: (output: string) => boolean = (output) =>
+    output.includes("keine") ||
+    output.includes("#876") ||
+    output.includes("gh auth login"),
 ): Promise<string> {
   return new Promise<string>((resolve, reject) => {
     let output = "";
@@ -96,11 +100,7 @@ function renderLive(
       });
     };
     const timer = setInterval(() => {
-      if (
-        output.includes("keine") ||
-        output.includes("#876") ||
-        output.includes("gh auth login")
-      ) {
+      if (until(output)) {
         finish();
       }
     }, 20);
@@ -115,6 +115,24 @@ function renderLive(
     }, 2_000);
   });
 }
+
+test("puts the status cells behind the pull request number", async () => {
+  const stripAnsi = (text: string) =>
+    text.replace(/\u001b\[[0-9;]*[A-Za-z]/g, "");
+  const output = stripAnsi(
+    await renderLive(
+      <App
+        load={load}
+        open={open}
+        now={now}
+        intervalMs={60_000}
+        cachePath={null}
+      />,
+      120,
+    ),
+  );
+  expect(output).toMatch(/#876\s+✗ ✗\s+feat\(krise\)/);
+});
 
 test("renders the loading header and footer on first render", () => {
   const output = renderToString(
@@ -299,6 +317,8 @@ test("keeps the cached rows when the refresh fails", async () => {
         cachePath={cachePath}
         cacheTtlMs={60_000}
       />,
+      80,
+      (out) => out.includes("gh auth login"),
     );
     expect(output).toContain("#999");
     expect(output).toContain("Cache");
