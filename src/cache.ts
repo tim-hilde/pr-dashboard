@@ -3,6 +3,36 @@ import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import type { FetchResult } from "./github";
 
+const CI_STATES = new Set(["success", "failure", "pending", "none"]);
+const CODEX_STATES = new Set(["approved", "comments", "changes", "stale", "none"]);
+
+function isPullRequest(value: unknown): boolean {
+  if (typeof value !== "object" || value === null) return false;
+  const pr = value as Record<string, unknown>;
+  const ci = pr.ci as Record<string, unknown> | undefined;
+  const codex = pr.codex as Record<string, unknown> | undefined;
+  return (
+    typeof pr.repo === "string" &&
+    typeof pr.repoShort === "string" &&
+    typeof pr.title === "string" &&
+    typeof pr.url === "string" &&
+    typeof pr.updatedAt === "string" &&
+    typeof pr.headRef === "string" &&
+    typeof pr.baseRef === "string" &&
+    typeof pr.headCommittedAt === "string" &&
+    typeof pr.number === "number" &&
+    typeof pr.isDraft === "boolean" &&
+    ci !== undefined &&
+    typeof ci.state === "string" &&
+    CI_STATES.has(ci.state) &&
+    Array.isArray(ci.failed) &&
+    codex !== undefined &&
+    typeof codex.state === "string" &&
+    CODEX_STATES.has(codex.state) &&
+    Array.isArray(codex.required)
+  );
+}
+
 export type CacheEntry = {
   version: 1;
   fetchedAt: string;
@@ -23,6 +53,7 @@ export function readCache(path: string): CacheEntry | null {
       Number.isNaN(Date.parse(parsed.fetchedAt)) ||
       parsed.result === undefined ||
       !Array.isArray(parsed.result.prs) ||
+      !parsed.result.prs.every(isPullRequest) ||
       typeof parsed.result.total !== "number"
     ) {
       return null;

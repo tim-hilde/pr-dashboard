@@ -75,6 +75,20 @@ test("ignores corrupt and old cache files", () => {
   }
 });
 
+test("ignores an entry with a malformed pull request", () => {
+  const dir = mkdtempSync(join(tmpdir(), "prs-cache-"));
+  const path = join(dir, "prs.json");
+  try {
+    writeFileSync(
+      path,
+      JSON.stringify({ ...entry, result: { prs: [{ repo: "x" }], total: 1 } }),
+    );
+    expect(readCache(path)).toBeNull();
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test("computes the cache age and freshness", () => {
   expect(cacheAge(entry, new Date("2026-11-06T12:00:30Z"))).toBe(30_000);
   expect(cacheAge(entry, new Date("2026-11-06T11:59:00Z"))).toBe(0);
