@@ -1,5 +1,13 @@
 import { expect, test } from "bun:test";
-import { ciCell, codexCell, link, relativeTime, truncate } from "../src/format";
+import {
+  ciCell,
+  ciColor,
+  codexCell,
+  codexColor,
+  link,
+  relativeTime,
+  truncate,
+} from "../src/format";
 
 test("truncates with an ellipsis", () => {
   expect(truncate("abcdefghij", 10)).toBe("abcdefghij");
@@ -34,4 +42,16 @@ test("wraps text in an OSC 8 hyperlink", () => {
   expect(link("PR", "https://example.test")).toBe(
     "\u001b]8;;https://example.test\u0007PR\u001b]8;;\u0007",
   );
+});
+
+test("maps status colors", () => {
+  expect(ciColor("success")).toBe("green");
+  expect(ciColor("pending")).toBe("yellow");
+  expect(ciColor("failure")).toBe("red");
+  expect(ciColor("none")).toBe("gray");
+  expect(codexColor("approved")).toBe("green");
+  expect(codexColor("comments")).toBe("yellow");
+  expect(codexColor("changes")).toBe("red");
+  expect(codexColor("stale")).toBe("yellow");
+  expect(codexColor("none")).toBe("gray");
 });

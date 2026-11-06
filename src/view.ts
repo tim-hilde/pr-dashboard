@@ -1,10 +1,21 @@
-import { ciCell, codexCell, link, relativeTime, truncate } from "./format";
+import {
+  ciCell,
+  ciColor,
+  codexCell,
+  codexColor,
+  link,
+  relativeTime,
+  truncate,
+} from "./format";
+import type { StatusColor } from "./format";
 import type { CiState, CodexState, PullRequest } from "./types";
 
 export type PreviewLine = {
   text: string;
-  color?: "green" | "yellow" | "red" | "gray" | "blue";
+  color?: StatusColor;
   dim?: boolean;
+  bold?: boolean;
+  underline?: boolean;
 };
 
 const CI_TEXT: Record<CiState, string> = {
@@ -12,21 +23,6 @@ const CI_TEXT: Record<CiState, string> = {
   pending: "laufen",
   failure: "fehlgeschlagen",
   none: "keine Checks",
-};
-
-const CI_COLORS: Record<CiState, PreviewLine["color"]> = {
-  success: "green",
-  pending: "blue",
-  failure: "red",
-  none: "gray",
-};
-
-const CODEX_COLORS: Record<CodexState, PreviewLine["color"]> = {
-  approved: "green",
-  comments: "yellow",
-  changes: "red",
-  stale: "yellow",
-  none: "gray",
 };
 
 const CODEX_NAMES: Record<CodexState, string> = {
@@ -53,8 +49,8 @@ export function buildListRow(
 export function buildPreviewLines(pr: PullRequest, now: Date): PreviewLine[] {
   const lines: PreviewLine[] = [];
 
-  lines.push({ text: `#${pr.number} · ${pr.repoShort}`, color: "blue" });
-  lines.push({ text: pr.title });
+  lines.push({ text: `#${pr.number} · ${pr.repoShort}`, color: "blue", bold: true });
+  lines.push({ text: pr.title, bold: true });
 
   const state = pr.isDraft ? "Draft" : "offen";
   lines.push({
@@ -68,7 +64,7 @@ export function buildPreviewLines(pr: PullRequest, now: Date): PreviewLine[] {
     ci.state === "failure" && ci.failed.length > 0
       ? `${CI_TEXT[ci.state]}: ${ci.failed.join(", ")}`
       : CI_TEXT[ci.state];
-  lines.push({ text: `CI    ${ciText}`, color: CI_COLORS[ci.state] });
+  lines.push({ text: `CI    ${ciText}`, color: ciColor(ci.state) });
 
   const codex = pr.codex;
   if (codex.state === "none") {
@@ -81,7 +77,7 @@ export function buildPreviewLines(pr: PullRequest, now: Date): PreviewLine[] {
     const when = codex.createdAt === undefined ? "" : ` · ${relativeTime(codex.createdAt, now)}`;
     lines.push({
       text: `Codex ${codexCell(codex.state)} ${verdict}${when}`,
-      color: CODEX_COLORS[codex.state],
+      color: codexColor(codex.state),
     });
   }
 
@@ -94,13 +90,13 @@ export function buildPreviewLines(pr: PullRequest, now: Date): PreviewLine[] {
 
   if (codex.required.length > 0) {
     lines.push({ text: "" });
-    lines.push({ text: "Required Changes", dim: true });
+    lines.push({ text: "Required Changes", bold: true, dim: true });
     for (const item of codex.required) {
       lines.push({ text: `• ${item}` });
     }
   }
 
-  lines.push({ text: link("PR öffnen", pr.url) });
+  lines.push({ text: link("PR öffnen", pr.url), color: "blue", underline: true });
 
   return lines;
 }

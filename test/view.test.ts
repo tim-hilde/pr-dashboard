@@ -114,3 +114,26 @@ test("links the pull request URL at the end of the preview", () => {
     "\u001b]8;;https://github.com/Merlin-Digital-Solutions/merlin-dashboard/pull/876\u0007",
   );
 });
+
+test("uses the status colors and hierarchy in the preview", () => {
+  const now = new Date("2026-11-06T12:00:00Z");
+  const lines = buildPreviewLines(pr(), now);
+  expect(lines[0]).toMatchObject({
+    text: "#876 · merlin-dashboard",
+    color: "blue",
+    bold: true,
+  });
+  const title = lines.find((line) => line.text === pr().title);
+  expect(title?.bold).toBe(true);
+  const linkLine = lines.at(-1);
+  expect(linkLine?.color).toBe("blue");
+  expect(linkLine?.underline).toBe(true);
+
+  const pending = buildPreviewLines(
+    pr({ ci: { state: "pending", failed: [] } }),
+    now,
+  );
+  expect(pending.find((line) => line.text.startsWith("CI"))?.color).toBe(
+    "yellow",
+  );
+});

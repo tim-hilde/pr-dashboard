@@ -14,6 +14,7 @@ import { sortPullRequests } from "./sort";
 import { applyRefresh } from "./state";
 import type { DashboardState } from "./state";
 import type { PullRequest } from "./types";
+import { ciColor, codexColor } from "./format";
 import { buildListRow, buildPreviewLines } from "./view";
 import type { PreviewLine } from "./view";
 
@@ -33,8 +34,8 @@ const defaultNow = () => new Date();
 
 const PREVIEW_MIN_COLUMNS = 100;
 const NUMBER_WIDTH = 6;
-const STATUS_WIDTH = 4;
-const CELL_GAPS = 4;
+const STATUS_WIDTH = 3;
+const ROW_CHROME = 14;
 
 const initialDashboard: DashboardState = {
   data: null,
@@ -50,7 +51,12 @@ function headerTime(date: Date | null): string {
 }
 
 function previewLineProps(line: PreviewLine) {
-  return { color: line.color, dimColor: line.dim };
+  return {
+    color: line.color,
+    dimColor: line.dim,
+    bold: line.bold,
+    underline: line.underline,
+  };
 }
 
 export function App({
@@ -69,7 +75,7 @@ export function App({
   const [status, setStatus] = useState<string>();
   const inFlightRef = useRef(false);
   const selectedRef = useRef(0);
-  const { columns } = useWindowSize();
+  const { columns, rows } = useWindowSize();
   const { exit } = useApp();
   const { isRawModeSupported } = useStdin();
 
@@ -108,17 +114,18 @@ export function App({
     { name: "OPEN", prs: sorted.open },
     { name: "DRAFT", prs: sorted.draft },
   ];
-  const rows = [...sorted.open, ...sorted.draft];
+  const allRows = [...sorted.open, ...sorted.draft];
+  const count = data?.prs.length ?? 0;
 
   useEffect(() => {
-    if (data !== null && selectedRef.current >= rows.length) {
-      setSelected(Math.max(0, rows.length - 1));
+    if (data !== null && selectedRef.current >= allRows.length) {
+      setSelected(Math.max(0, allRows.length - 1));
     }
-  }, [data, rows.length]);
+  }, [data, allRows.length]);
 
   const step = (delta: number) => {
     const next = selectedRef.current + delta;
-    setSelected(Math.max(0, Math.min(next, rows.length - 1)));
+    setSelected(Math.max(0, Math.min(next, allRows.length - 1)));
     setStatus(undefined);
   };
 
@@ -136,17 +143,17 @@ export function App({
       return;
     }
     if (key.return || input === "o") {
-      const row = rows[selectedRef.current];
+      const row = allRows[selectedRef.current];
       if (row !== undefined) open(row.url);
       return;
     }
     if (input === "c") {
-      const row = rows[selectedRef.current];
+      const row = allRows[selectedRef.current];
       if (row !== undefined) open(`${row.url}/checks`);
       return;
     }
     if (input === "v") {
-      const row = rows[selectedRef.current];
+      const row = allRows[selectedRef.current];
       if (row === undefined) return;
       if (row.codex.commentUrl === undefined) {
         setStatus("Kein Codex-Kommentar");
@@ -169,29 +176,36 @@ export function App({
   const previewWidth = previewVisible
     ? Math.min(70, Math.max(40, Math.floor(columns * 0.45)))
     : 0;
-  const listWidth = Math.max(20, columns - previewWidth - 3);
-  const longestRepo = Math.max(...rows.map((row) => row.repoShort.length), 0);
+  const listWidth = Math.max(20, columns - previewWidth - (previewVisible ? 1 : 0));
+  const longestRepo = Math.max(...allRows.map((row) => row.repoShort.length), 0);
   const repoWidth = Math.min(20, Math.max(4, longestRepo));
-  const titleWidth = Math.max(
-    10,
-    listWidth - repoWidth - NUMBER_WIDTH - STATUS_WIDTH - CELL_GAPS,
-  );
+  const titleWidth = Math.max(1, listWidth - repoWidth - ROW_CHROME);
 
-  const selectedRow = rows[selectedRef.current];
+  const selectedRow = allRows[selectedRef.current];
   const previewLines =
     selectedRow === undefined ? [] : buildPreviewLines(selectedRow, now());
+  const firstLoadError = data === null && error !== null;
 
   return (
-    <Box flexDirection="column">
-      <Box>
-        <Text bold>
-          Merlin-Digital-Solutions · {data?.prs.length ?? 0} PRs ·{" "}
-          {headerTime(lastUpdated)}
+    <Box flexDirection="column" height={rows}>
+      <Box
+        justifyContent="space-between"
+        borderStyle="single"
+        borderBottom
+        borderTop={false}
+        borderLeft={false}
+        borderRight={false}
+        borderColor="gray"
+      >
+        <Text bold>Merlin-Digital-Solutions</Text>
+        <Text dimColor>
+          {count} PRs · Stand {headerTime(lastUpdated)}
+          {loading ? " · lädt" : ""}
         </Text>
       </Box>
-      {error !== null && (
+      {data !== null && error !== null && (
         <Box>
-          <Text color="red">{error}</Text>
+          <Text color="red">! {error}</Text>
         </Box>
       )}
       {status !== undefined && (
@@ -207,82 +221,102 @@ export function App({
         </Box>
       )}
 
-      {data === null ? (
-        error !== null ? (
-          <Box flexDirection="column">
-            <Text>r neu laden · q beenden</Text>
-          </Box>
+      <Box flexGrow={1} alignItems="flex-start">
+        {data === null ? (
+          firstLoadError ? (
+            <Box width="100%" justifyContent="center">
+              <Box
+                borderStyle="round"
+                borderColor="red"
+                paddingX={1}
+                flexDirection="column"
+              >
+                <Text color="red">! {error}</Text>
+                <Text dimColor>r neu laden · q beenden</Text>
+              </Box>
+            </Box>
+          ) : (
+            <Box width="100%" justifyContent="center">
+              <Text dimColor>Lade Pull Requests…</Text>
+            </Box>
+          )
         ) : (
-          <Text dimColor>Lade Pull Requests…</Text>
-        )
-      ) : (
-        <Box>
-          <Box
-            flexDirection="column"
-            flexGrow={1}
-            width={listWidth}
-            flexShrink={0}
-          >
-            {sections.map((section, sectionIndex) => {
-              const offset = sections
-                .slice(0, sectionIndex)
-                .reduce((sum, previous) => sum + previous.prs.length, 0);
-              return (
-                <Box key={section.name} flexDirection="column">
-                  <Text bold>{section.name}</Text>
-                  {section.prs.length === 0 ? (
-                    <Text dimColor>keine</Text>
-                  ) : (
-                    section.prs.map((pr, rowIndex) => {
-                      const index = offset + rowIndex;
-                      const cells = buildListRow(pr, {
-                        repo: repoWidth,
-                        title: titleWidth,
-                      });
-                      const marker =
-                        index === selectedRef.current ? "▸ " : "  ";
-                      const highlighted = index === selectedRef.current;
-                      const label = `${marker}${cells.repo} ${cells.number.padEnd(
-                        NUMBER_WIDTH,
-                      )} `;
-                      return (
-                        <Box key={pr.url} flexDirection="column">
-                          <Box>
-                            <Text inverse={highlighted}>{label}</Text>
-                            <Box
-                              width={titleWidth}
-                              flexShrink={1}
-                              flexDirection="column"
-                            >
-                              <Text inverse={highlighted} wrap="wrap">
-                                {cells.title}
+          <>
+            <Box
+              flexDirection="column"
+              width={listWidth}
+              flexShrink={0}
+            >
+              {sections.map((section, sectionIndex) => {
+                const offset = sections
+                  .slice(0, sectionIndex)
+                  .reduce((sum, previous) => sum + previous.prs.length, 0);
+                return (
+                  <Box
+                    key={section.name}
+                    flexDirection="column"
+                    marginTop={section.name === "DRAFT" ? 1 : 0}
+                  >
+                    <Box>
+                      <Text bold>{section.name}</Text>
+                      <Text dimColor>  {section.prs.length}</Text>
+                    </Box>
+                    {section.prs.length === 0 ? (
+                      <Text dimColor>  keine</Text>
+                    ) : (
+                      section.prs.map((pr, rowIndex) => {
+                        const index = offset + rowIndex;
+                        const cells = buildListRow(pr, {
+                          repo: repoWidth,
+                          title: titleWidth,
+                        });
+                        const marker =
+                          index === selectedRef.current ? "▸ " : "  ";
+                        const highlighted = index === selectedRef.current;
+                        return (
+                          <Box key={pr.url} flexDirection="column">
+                            <Box>
+                              <Text inverse={highlighted}>
+                                {marker}
+                                {cells.repo} {cells.number.padStart(NUMBER_WIDTH)}{" "}
                               </Text>
-                            </Box>
-                            <Text inverse={highlighted}> </Text>
-                            <Box width={STATUS_WIDTH}>
-                              <Text>{cells.ci}</Text>
-                              <Text> </Text>
-                              <Text>{cells.codex}</Text>
+                              <Box
+                                width={titleWidth}
+                                flexShrink={1}
+                                flexDirection="column"
+                              >
+                                <Text inverse={highlighted} wrap="truncate">
+                                  {cells.title}
+                                </Text>
+                              </Box>
+                              <Text inverse={highlighted}> </Text>
+                              <Box width={STATUS_WIDTH}>
+                                <Text color={ciColor(pr.ci.state)}>
+                                  {cells.ci}
+                                </Text>
+                                <Text> </Text>
+                                <Text color={codexColor(pr.codex.state)}>
+                                  {cells.codex}
+                                </Text>
+                              </Box>
                             </Box>
                           </Box>
-                        </Box>
-                      );
-                    })
-                  )}
-                </Box>
-              );
-            })}
-          </Box>
-          {previewVisible && selectedRow !== undefined && (
-            <>
-              <Box width={1} />
+                        );
+                      })
+                    )}
+                  </Box>
+                );
+              })}
+            </Box>
+            {previewVisible && selectedRow !== undefined && (
               <Box
                 flexDirection="column"
                 width={previewWidth}
                 flexShrink={0}
-                borderStyle="single"
+                borderStyle="round"
                 borderColor="gray"
                 paddingX={1}
+                marginLeft={1}
               >
                 {previewLines.map((line, index) => (
                   <Text key={index} wrap="wrap" {...previewLineProps(line)}>
@@ -290,17 +324,36 @@ export function App({
                   </Text>
                 ))}
               </Box>
-            </>
+            )}
+          </>
+        )}
+      </Box>
+
+      {!firstLoadError && (
+        <Box
+          flexDirection="column"
+          borderStyle="single"
+          borderTop
+          borderBottom={false}
+          borderLeft={false}
+          borderRight={false}
+          borderColor="gray"
+        >
+          {columns >= 90 ? (
+            <Text dimColor>
+              j/k wählen · Enter PR · c Checks · v Codex · p Vorschau · r neu
+              laden · q beenden
+            </Text>
+          ) : (
+            <Box flexDirection="column">
+              <Text dimColor>
+                j/k wählen · Enter PR · c Checks · v Codex · p Vorschau
+              </Text>
+              <Text dimColor>r neu laden · q beenden</Text>
+            </Box>
           )}
         </Box>
       )}
-
-      <Box marginTop={1}>
-        <Text dimColor>
-          j/k wählen · Enter PR · c Checks · v Codex · p Vorschau · r neu laden ·
-          q beenden
-        </Text>
-      </Box>
     </Box>
   );
 }

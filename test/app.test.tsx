@@ -26,10 +26,24 @@ const sample: PullRequest = {
   },
 };
 
+const longSample: PullRequest = {
+  ...sample,
+  codex: {
+    ...sample.codex,
+    required: [
+      "Fix the scrolling regression that resets the position on every refresh so that the dashboard keeps its place during the hourly reload",
+    ],
+  },
+};
+
 const result: FetchResult = { prs: [sample], total: 1 };
 const emptyResult: FetchResult = { prs: [], total: 0 };
 const load = async () => result;
+const longLoad = async () => ({ prs: [longSample], total: 1 });
 const emptyLoad = async () => emptyResult;
+const failLoad = async () => {
+  throw new Error("gh: Not logged in");
+};
 const open = () => {};
 const now = () => new Date("2026-11-06T12:00:00Z");
 
@@ -70,7 +84,13 @@ function renderLive(
       });
     };
     const timer = setInterval(() => {
-      if (output.includes("keine") || output.includes("#876")) finish();
+      if (
+        output.includes("keine") ||
+        output.includes("#876") ||
+        output.includes("gh auth login")
+      ) {
+        finish();
+      }
     }, 20);
     const timeout = setTimeout(() => {
       if (output === "") {
@@ -89,7 +109,9 @@ test("renders the loading header and footer on first render", () => {
     <App load={emptyLoad} />,
     { columns: 120 },
   );
-  expect(output).toContain("Merlin-Digital-Solutions · 0 PRs");
+  expect(output).toContain("Merlin-Digital-Solutions");
+  expect(output).toContain("0 PRs");
+  expect(output).toContain("Stand");
   expect(output).toContain("Lade Pull Requests…");
   expect(output).toContain("j/k wählen");
   expect(output).toContain("q beenden");
@@ -99,8 +121,8 @@ test("shows both section headers with keine placeholders when empty", async () =
   const output = await renderLive(
     <App load={emptyLoad} open={open} now={now} intervalMs={60_000} />,
   );
-  expect(output).toContain("OPEN");
-  expect(output).toContain("DRAFT");
+  expect(output).toContain("OPEN  0");
+  expect(output).toContain("DRAFT  0");
   expect(output).toContain("keine");
 });
 
@@ -113,7 +135,9 @@ test("renders the rows once loading resolves", async () => {
       intervalMs={60_000}
     />,
   );
-  expect(output).toContain("Merlin-Digital-Solutions · 1 PRs");
+  expect(output).toContain("Merlin-Digital-Solutions");
+  expect(output).toContain("1 PRs");
+  expect(output).toContain("OPEN  1");
   expect(output).toContain("merlin-dashboard");
   expect(output).toContain("#876");
   expect(output).toContain("✗");
@@ -134,4 +158,42 @@ test("renders the preview pane header line once per frame", async () => {
   const count = (needle: string) => output.split(needle).length - 1;
   expect(count(header)).toBeGreaterThan(0);
   expect(count(header)).toBe(count(titleLine));
+});
+
+test("hides the preview pane on narrow terminals", async () => {
+  const output = await renderLive(
+    <App
+      load={load}
+      open={open}
+      now={now}
+      intervalMs={60_000}
+    />,
+  );
+  expect(output).not.toContain("#876 · merlin-dashboard");
+});
+
+test("shows the beginning of long preview lines", async () => {
+  const output = await renderLive(
+    <App
+      load={longLoad}
+      open={open}
+      now={now}
+      intervalMs={60_000}
+    />,
+    120,
+  );
+  expect(output).toContain("Fix the scrolling regression");
+});
+
+test("shows the error box when the first load fails", async () => {
+  const output = await renderLive(
+    <App
+      load={failLoad}
+      open={open}
+      now={now}
+      intervalMs={60_000}
+    />,
+  );
+  expect(output).toContain("gh auth login");
+  expect(output).toContain("Stand");
 });
