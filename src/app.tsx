@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Box, Text, useApp, useInput, useStdin, useWindowSize } from "ink";
+import { describeGhError } from "./errors";
 import { fetchPullRequests, resolveLogin } from "./github";
 import type { FetchResult } from "./github";
 import { openUrl } from "./open";
@@ -73,7 +74,7 @@ export function App({
         Math.max(0, Math.min(selectedRef.current, result.prs.length - 1)),
       );
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      setError(describeGhError(err));
     } finally {
       inFlightRef.current = false;
       setLoading(false);
