@@ -7,12 +7,12 @@ import {
   relativeTime,
   truncate,
 } from "./format";
-import type { StatusColor } from "./format";
 import type { CiState, CodexState, PullRequest } from "./types";
+import type { ThemeColor } from "./theme";
 
 export type PreviewLine = {
   text: string;
-  color?: StatusColor;
+  color?: ThemeColor;
   dim?: boolean;
   bold?: boolean;
   underline?: boolean;
@@ -49,7 +49,7 @@ export function buildListRow(
 export function buildPreviewLines(pr: PullRequest, now: Date): PreviewLine[] {
   const lines: PreviewLine[] = [];
 
-  lines.push({ text: `#${pr.number} · ${pr.repoShort}`, color: "blue", bold: true });
+  lines.push({ text: `#${pr.number} · ${pr.repoShort}`, color: "accent", bold: true });
   lines.push({ text: pr.title, bold: true });
 
   const state = pr.isDraft ? "Draft" : "offen";
@@ -70,7 +70,7 @@ export function buildPreviewLines(pr: PullRequest, now: Date): PreviewLine[] {
   if (codex.state === "none") {
     lines.push({
       text: "Codex – · Kein Codex-Kommentar (letzte 100 Kommentare geprüft)",
-      color: "gray",
+      color: "muted",
     });
   } else {
     const verdict = codex.verdictText ?? CODEX_NAMES[codex.state];
@@ -90,13 +90,13 @@ export function buildPreviewLines(pr: PullRequest, now: Date): PreviewLine[] {
 
   if (codex.required.length > 0) {
     lines.push({ text: "" });
-    lines.push({ text: "Required Changes", bold: true, dim: true });
+    lines.push({ text: "Required Changes", color: "border", bold: true });
     for (const item of codex.required) {
       lines.push({ text: `• ${item}` });
     }
   }
 
-  lines.push({ text: link("PR öffnen", pr.url), color: "blue", underline: true });
+  lines.push({ text: link("PR öffnen", pr.url), color: "accent", underline: true });
 
   return lines;
 }

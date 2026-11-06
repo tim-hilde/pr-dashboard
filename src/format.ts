@@ -1,6 +1,5 @@
 import type { CiState, CodexState } from "./types";
-
-export type StatusColor = "green" | "yellow" | "red" | "gray" | "blue";
+import type { ThemeColor } from "./theme";
 
 const CI_SYMBOLS: Record<CiState, string> = {
   success: "✓",
@@ -45,26 +44,26 @@ export function codexCell(state: CodexState): string {
   return CODEX_SYMBOLS[state];
 }
 
-const CI_COLORS: Record<CiState, StatusColor> = {
+const CI_COLORS: Record<CiState, ThemeColor> = {
   success: "green",
   pending: "yellow",
   failure: "red",
-  none: "gray",
+  none: "muted",
 };
 
-const CODEX_COLORS: Record<CodexState, StatusColor> = {
+const CODEX_COLORS: Record<CodexState, ThemeColor> = {
   approved: "green",
   comments: "yellow",
   changes: "red",
   stale: "yellow",
-  none: "gray",
+  none: "muted",
 };
 
-export function ciColor(state: CiState): StatusColor {
+export function ciColor(state: CiState): ThemeColor {
   return CI_COLORS[state];
 }
 
-export function codexColor(state: CodexState): StatusColor {
+export function codexColor(state: CodexState): ThemeColor {
   return CODEX_COLORS[state];
 }
 

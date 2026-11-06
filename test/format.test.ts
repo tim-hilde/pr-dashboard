@@ -48,10 +48,10 @@ test("maps status colors", () => {
   expect(ciColor("success")).toBe("green");
   expect(ciColor("pending")).toBe("yellow");
   expect(ciColor("failure")).toBe("red");
-  expect(ciColor("none")).toBe("gray");
+  expect(ciColor("none")).toBe("muted");
   expect(codexColor("approved")).toBe("green");
   expect(codexColor("comments")).toBe("yellow");
   expect(codexColor("changes")).toBe("red");
   expect(codexColor("stale")).toBe("yellow");
-  expect(codexColor("none")).toBe("gray");
+  expect(codexColor("none")).toBe("muted");
 });

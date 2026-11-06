@@ -19,6 +19,7 @@ import type { PullRequest } from "./types";
 import { ciColor, codexColor } from "./format";
 import { buildListRow, buildPreviewLines } from "./view";
 import type { PreviewLine } from "./view";
+import { PREVIEW_BORDER, RULE_BORDER, THEME } from "./theme";
 
 export type AppProps = {
   load?: () => Promise<FetchResult>;
@@ -57,8 +58,7 @@ function headerTime(date: Date | null): string {
 
 function previewLineProps(line: PreviewLine) {
   return {
-    color: line.color,
-    dimColor: line.dim,
+    color: line.color ? THEME[line.color] : line.dim ? THEME.muted : undefined,
     bold: line.bold,
     underline: line.underline,
   };
@@ -242,32 +242,39 @@ export function App({
     <Box flexDirection="column" height={rows}>
       <Box
         justifyContent="space-between"
-        borderStyle="single"
+        borderStyle={RULE_BORDER}
         borderBottom
         borderTop={false}
         borderLeft={false}
         borderRight={false}
-        borderColor="gray"
+        borderColor={THEME.muted}
       >
-        <Text bold>Merlin-Digital-Solutions</Text>
-        <Text dimColor>
-          {count} PRs · {cached ? "Cache" : "Stand"} {headerTime(lastUpdated)}
-          {loading ? " · lädt" : ""}
+        <Text bold color={THEME.text}>
+          Merlin-Digital-Solutions
+        </Text>
+        <Text>
+          <Text color={THEME.text}>{count} PRs</Text>
+          <Text color={THEME.muted}> · </Text>
+          <Text color={cached ? THEME.accent : THEME.muted}>
+            {cached ? "Cache" : "Stand"}
+          </Text>
+          <Text color={THEME.muted}> {headerTime(lastUpdated)}</Text>
+          {loading && <Text color={THEME.accent}> · lädt</Text>}
         </Text>
       </Box>
       {data !== null && error !== null && (
         <Box>
-          <Text color="red">! {error}</Text>
+          <Text color={THEME.red}>! {error}</Text>
         </Box>
       )}
       {status !== undefined && (
         <Box>
-          <Text color="yellow">{status}</Text>
+          <Text color={THEME.yellow}>{status}</Text>
         </Box>
       )}
       {data !== null && data.total > data.prs.length && (
         <Box>
-          <Text dimColor>
+          <Text color={THEME.muted}>
             Nur die ersten {data.prs.length} von {data.total} PRs
           </Text>
         </Box>
@@ -278,18 +285,18 @@ export function App({
           firstLoadError ? (
             <Box width="100%" justifyContent="center">
               <Box
-                borderStyle="round"
-                borderColor="red"
+                borderStyle={PREVIEW_BORDER}
+                borderColor={THEME.red}
                 paddingX={1}
                 flexDirection="column"
               >
-                <Text color="red">! {error}</Text>
-                <Text dimColor>r neu laden · q beenden</Text>
+                <Text color={THEME.red}>! {error}</Text>
+                <Text color={THEME.muted}>r neu laden · q beenden</Text>
               </Box>
             </Box>
           ) : (
             <Box width="100%" justifyContent="center">
-              <Text dimColor>Lade Pull Requests…</Text>
+              <Text color={THEME.muted}>Lade Pull Requests…</Text>
             </Box>
           )
         ) : (
@@ -310,11 +317,13 @@ export function App({
                     marginTop={section.name === "DRAFT" ? 1 : 0}
                   >
                     <Box>
-                      <Text bold>{section.name}</Text>
-                      <Text dimColor>  {section.prs.length}</Text>
+                      <Text bold color={THEME.border}>
+                        {section.name}
+                      </Text>
+                      <Text color={THEME.muted}>  {section.prs.length}</Text>
                     </Box>
                     {section.prs.length === 0 ? (
-                      <Text dimColor>  keine</Text>
+                      <Text color={THEME.muted}>  keine</Text>
                     ) : (
                       section.prs.map((pr, rowIndex) => {
                         const index = offset + rowIndex;
@@ -327,26 +336,27 @@ export function App({
                         return (
                           <Box key={pr.url} flexDirection="column">
                             <Box>
-                              <Text>
-                                {marker}
-                                {cells.repo} {cells.number.padStart(NUMBER_WIDTH)}{" "}
+                              <Text color={THEME.border}>{marker}</Text>
+                              <Text color={THEME.text}>{cells.repo} </Text>
+                              <Text color={THEME.muted}>
+                                {cells.number.padStart(NUMBER_WIDTH)}{" "}
                               </Text>
                               <Box
                                 width={titleWidth}
                                 flexShrink={1}
                                 flexDirection="column"
                               >
-                                <Text wrap="truncate">
+                                <Text color={THEME.text} wrap="truncate">
                                   {cells.title}
                                 </Text>
                               </Box>
                               <Text> </Text>
                               <Box width={STATUS_WIDTH}>
-                                <Text color={ciColor(pr.ci.state)}>
+                                <Text color={THEME[ciColor(pr.ci.state)]}>
                                   {cells.ci}
                                 </Text>
                                 <Text> </Text>
-                                <Text color={codexColor(pr.codex.state)}>
+                                <Text color={THEME[codexColor(pr.codex.state)]}>
                                   {cells.codex}
                                 </Text>
                               </Box>
@@ -364,8 +374,8 @@ export function App({
                 flexDirection="column"
                 width={previewWidth}
                 flexShrink={0}
-                borderStyle="round"
-                borderColor="gray"
+                borderStyle={PREVIEW_BORDER}
+                borderColor={THEME.border}
                 paddingX={1}
                 marginLeft={1}
               >
@@ -383,24 +393,24 @@ export function App({
       {!firstLoadError && (
         <Box
           flexDirection="column"
-          borderStyle="single"
+          borderStyle={RULE_BORDER}
           borderTop
           borderBottom={false}
           borderLeft={false}
           borderRight={false}
-          borderColor="gray"
+          borderColor={THEME.muted}
         >
           {columns >= 90 ? (
-            <Text dimColor>
+            <Text color={THEME.muted}>
               j/k wählen · Enter PR · c Checks · v Codex · p Vorschau · r neu
               laden · q beenden
             </Text>
           ) : (
             <Box flexDirection="column">
-              <Text dimColor>
+              <Text color={THEME.muted}>
                 j/k wählen · Enter PR · c Checks · v Codex · p Vorschau
               </Text>
-              <Text dimColor>r neu laden · q beenden</Text>
+              <Text color={THEME.muted}>r neu laden · q beenden</Text>
             </Box>
           )}
         </Box>

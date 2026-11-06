@@ -120,13 +120,13 @@ test("uses the status colors and hierarchy in the preview", () => {
   const lines = buildPreviewLines(pr(), now);
   expect(lines[0]).toMatchObject({
     text: "#876 · merlin-dashboard",
-    color: "blue",
+    color: "accent",
     bold: true,
   });
   const title = lines.find((line) => line.text === pr().title);
   expect(title?.bold).toBe(true);
   const linkLine = lines.at(-1);
-  expect(linkLine?.color).toBe("blue");
+  expect(linkLine?.color).toBe("accent");
   expect(linkLine?.underline).toBe(true);
 
   const pending = buildPreviewLines(
