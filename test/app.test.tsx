@@ -307,3 +307,18 @@ test("keeps the cached rows when the refresh fails", async () => {
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test("marks the selected row with the arrow only", async () => {
+  const output = await renderLive(
+    <App
+      load={load}
+      open={open}
+      now={now}
+      intervalMs={60_000}
+      cachePath={null}
+    />,
+    120,
+  );
+  expect(output).toContain("▸ ");
+  expect(output).not.toContain("\u001b[7m");
+});

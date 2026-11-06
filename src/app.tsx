@@ -324,11 +324,10 @@ export function App({
                         });
                         const marker =
                           index === selectedRef.current ? "▸ " : "  ";
-                        const highlighted = index === selectedRef.current;
                         return (
                           <Box key={pr.url} flexDirection="column">
                             <Box>
-                              <Text inverse={highlighted}>
+                              <Text>
                                 {marker}
                                 {cells.repo} {cells.number.padStart(NUMBER_WIDTH)}{" "}
                               </Text>
@@ -337,11 +336,11 @@ export function App({
                                 flexShrink={1}
                                 flexDirection="column"
                               >
-                                <Text inverse={highlighted} wrap="truncate">
+                                <Text wrap="truncate">
                                   {cells.title}
                                 </Text>
                               </Box>
-                              <Text inverse={highlighted}> </Text>
+                              <Text> </Text>
                               <Box width={STATUS_WIDTH}>
                                 <Text color={ciColor(pr.ci.state)}>
                                   {cells.ci}
