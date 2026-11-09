@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { PassThrough, Writable } from "node:stream";
@@ -451,6 +451,7 @@ test("shows the cached all-authors rows on Tab without fetching", async () => {
         now={now}
         intervalMs={60_000}
         cachePath={cachePath}
+      sharedBase={null}
         cacheTtlMs={60_000}
       />,
       "\t",
@@ -534,6 +535,7 @@ test("clears the loading label after leaving a running fetch and coming back", a
       now={now}
       intervalMs={60_000}
       cachePath={cachePath}
+      sharedBase={null}
       cacheTtlMs={60_000}
     />,
   );
@@ -652,6 +654,31 @@ test("shows the error box when the first load fails", async () => {
   expect(output).toContain("Stand");
 });
 
+test("writes the shared cache for the pr sidebar after a refresh", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "prs-shared-"));
+  try {
+    await renderLive(
+      <App
+        load={load}
+        open={open}
+        now={now}
+        intervalMs={60_000}
+        cachePath={null}
+        sharedBase={dir}
+      />,
+    );
+    const record = JSON.parse(
+      readFileSync(join(dir, "Merlin-Digital-Solutions__merlin-dashboard__876.json"), "utf8"),
+    );
+    expect(record.version).toBe(1);
+    expect(record.pr.number).toBe(876);
+    expect(record.pr.ci).toBe("failure");
+    expect(record.pr.review).toBe("changes");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test("shows a fresh cache immediately and skips the fetch", async () => {
   const dir = mkdtempSync(join(tmpdir(), "prs-app-cache-"));
   const cachePath = join(dir, "prs.json");
@@ -673,6 +700,7 @@ test("shows a fresh cache immediately and skips the fetch", async () => {
         now={now}
         intervalMs={60_000}
         cachePath={cachePath}
+      sharedBase={null}
         cacheTtlMs={60_000}
       />,
     );
@@ -701,6 +729,7 @@ test("shows the stale cache and refreshes it", async () => {
         now={now}
         intervalMs={60_000}
         cachePath={cachePath}
+      sharedBase={null}
         cacheTtlMs={60_000}
       />,
     );
@@ -728,6 +757,7 @@ test("keeps the cached rows when the refresh fails", async () => {
         now={now}
         intervalMs={60_000}
         cachePath={cachePath}
+      sharedBase={null}
         cacheTtlMs={60_000}
       />,
       80,

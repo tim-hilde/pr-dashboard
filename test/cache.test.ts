@@ -8,7 +8,9 @@ import {
   defaultCachePath,
   isFresh,
   readCache,
+  sharedPrPath,
   writeCache,
+  writeSharedPullRequests,
 } from "../src/cache";
 import type { CacheEntry } from "../src/cache";
 import type { FetchResult } from "../src/github";
@@ -37,7 +39,6 @@ const sample: PullRequest = {
 };
 
 const result: FetchResult = { prs: [sample], total: 1 };
-
 const entry: CacheEntry = {
   version: 1,
   fetchedAt: "2026-11-06T12:00:00.000Z",
@@ -114,4 +115,41 @@ test("uses the XDG cache directory when set", () => {
 test("derives the all-authors cache path", () => {
   expect(allPrsCachePath("/tmp/prs/prs.json")).toBe("/tmp/prs/prs-all.json");
   expect(allPrsCachePath("/tmp/prs/cache")).toBe("/tmp/prs/cache-all");
+});
+
+test("writes one shared file per pull request for the pr sidebar", () => {
+  const base = mkdtempSync(join(tmpdir(), "pr-data-"));
+  try {
+    writeSharedPullRequests([sample], new Date("2026-11-06T12:00:00Z"), base);
+    const path = join(base, "Merlin-Digital-Solutions__merlin-dashboard__876.json");
+    const record = JSON.parse(readFileSync(path, "utf8"));
+    expect(record.version).toBe(1);
+    expect(record.fetchedAt).toBe("2026-11-06T12:00:00.000Z");
+    expect(record.pr).toEqual({
+      number: 876,
+      title: sample.title,
+      url: sample.url,
+      kind: "open",
+      closedAt: null,
+      ci: "failure",
+      review: "changes",
+    });
+  } finally {
+    rmSync(base, { recursive: true, force: true });
+  }
+});
+
+test("writes a draft as draft and skips urls that are not pull requests", () => {
+  const base = mkdtempSync(join(tmpdir(), "pr-data-"));
+  try {
+    const draft = { ...sample, isDraft: true, url: "https://github.com/o/r/pull/7" };
+    const foreign = { ...sample, url: "https://example.test/pull/8" };
+    writeSharedPullRequests([draft, foreign], new Date("2026-11-06T12:00:00Z"), base);
+    const record = JSON.parse(readFileSync(join(base, "o__r__7.json"), "utf8"));
+    expect(record.pr.kind).toBe("draft");
+    expect(sharedPrPath("https://example.test/pull/8", base)).toBeUndefined();
+    expect(() => readFileSync(join(base, "example.test__pull__8.json"))).toThrow();
+  } finally {
+    rmSync(base, { recursive: true, force: true });
+  }
 });

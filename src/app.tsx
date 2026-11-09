@@ -7,7 +7,7 @@ import React, {
   useState,
 } from "react";
 import { Box, Text, useApp, useInput, useStdin, useWindowSize } from "ink";
-import { cacheAge, allPrsCachePath, defaultCachePath, readCache, writeCache } from "./cache";
+import { cacheAge, allPrsCachePath, defaultCachePath, readCache, sharedCacheBase, writeCache, writeSharedPullRequests } from "./cache";
 import { describeGhError } from "./errors";
 import { fetchPullRequests, resolveLogin } from "./github";
 import type { FetchResult } from "./github";
@@ -36,6 +36,7 @@ export type AppProps = {
   intervalMs?: number;
   now?: () => Date;
   cachePath?: string | null;
+  sharedBase?: string | null;
   cacheTtlMs?: number;
 };
 
@@ -80,6 +81,7 @@ export function App({
   loadAll = defaultLoadAll,
   open = defaultOpen,
   copy = copyText,
+  sharedBase,
   intervalMs = 60_000,
   now = defaultNow,
   cachePath = defaultCachePath(),
@@ -92,6 +94,12 @@ export function App({
     }),
     [cachePath],
   );
+  const sharedDir =
+    sharedBase !== undefined
+      ? sharedBase
+      : cachePath === null
+        ? null
+        : sharedCacheBase();
   const [mode, setMode] = useState<ListMode>("mine");
   const modeRef = useRef<ListMode>("mine");
   const activeCachePath = mode === "all" ? cachePaths.all : cachePaths.mine;
@@ -138,6 +146,7 @@ export function App({
     try {
       const result = await (current === "all" ? loadAll : load)();
       const at = now();
+      if (sharedDir !== null) writeSharedPullRequests(result.prs, at, sharedDir);
       if (path !== null) {
         try {
           writeCache(path, {
@@ -171,7 +180,7 @@ export function App({
       inFlightRef.current.delete(current);
       if (modeRef.current === current) setLoading(false);
     }
-  }, [mode, load, loadAll, now, cachePaths]);
+  }, [mode, load, loadAll, now, cachePaths, sharedDir]);
 
   const initialDelay = useMemo(() => {
     if (cacheEntry === null) return 0;

@@ -2,6 +2,7 @@ import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import type { FetchResult } from "./github";
+import type { PullRequest } from "./types";
 
 const CI_STATES = new Set(["success", "failure", "pending", "none"]);
 const CODEX_STATES = new Set(["approved", "comments", "changes", "stale", "none"]);
@@ -43,6 +44,53 @@ export type CacheEntry = {
 export function defaultCachePath(): string {
   const base = process.env.XDG_CACHE_HOME ?? join(homedir(), ".cache");
   return join(base, "pr-dashboard", "prs.json");
+}
+
+export function sharedCacheBase(): string {
+  const base = process.env.XDG_CACHE_HOME ?? join(homedir(), ".cache");
+  return join(base, "pr-data");
+}
+
+export function sharedPrPath(
+  url: string,
+  base: string = sharedCacheBase(),
+): string | undefined {
+  const match = /^https:\/\/github\.com\/([\w.-]+)\/([\w.-]+)\/pull\/(\d+)$/.exec(url);
+  if (match === null) return undefined;
+  return join(base, `${match[1]}__${match[2]}__${match[3]}.json`);
+}
+
+// The OpenCode pr sidebar reads these files, so both programs share one cache.
+export function writeSharedPullRequests(
+  prs: PullRequest[],
+  at: Date,
+  base: string = sharedCacheBase(),
+): void {
+  for (const pr of prs) {
+    const path = sharedPrPath(pr.url, base);
+    if (path === undefined) continue;
+    const record = {
+      version: 1,
+      fetchedAt: at.toISOString(),
+      pr: {
+        number: pr.number,
+        title: pr.title,
+        url: pr.url,
+        kind: pr.isDraft ? "draft" : "open",
+        closedAt: null,
+        ci: pr.ci.state,
+        review: pr.codex.state,
+      },
+    };
+    try {
+      mkdirSync(dirname(path), { recursive: true, mode: 0o700 });
+      const temporary = `${path}.tmp`;
+      writeFileSync(temporary, JSON.stringify(record), { mode: 0o600 });
+      renameSync(temporary, path);
+    } catch {
+      // A failed cache write must not break the refresh.
+    }
+  }
 }
 
 export function allPrsCachePath(path: string): string {
