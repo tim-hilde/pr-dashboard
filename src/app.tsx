@@ -12,6 +12,7 @@ import { describeGhError } from "./errors";
 import { fetchPullRequests, resolveLogin } from "./github";
 import type { FetchResult } from "./github";
 import { openUrl } from "./open";
+import { copyText } from "./clipboard";
 import { applyEvent } from "./state";
 import type { DashboardState } from "./state";
 import { ciColor, codexColor } from "./format";
@@ -30,6 +31,7 @@ export type AppProps = {
   load?: () => Promise<FetchResult>;
   loadAll?: () => Promise<FetchResult>;
   open?: (url: string) => void;
+  copy?: (text: string) => void;
   intervalMs?: number;
   now?: () => Date;
   cachePath?: string | null;
@@ -47,10 +49,8 @@ const defaultNow = () => new Date();
 const PREVIEW_MIN_COLUMNS = 100;
 const NUMBER_WIDTH = 6;
 const STATUS_WIDTH = 3;
-const ROW_CHROME = 14;
-const ALL_ROW_CHROME = 16;
+const ROW_CHROME = 15;
 const AUTHOR_MAX_WIDTH = 18;
-const FOOTER_ONE_LINE_MIN = 110;
 const CACHE_TTL_MS = 60_000;
 
 const initialDashboard: DashboardState = {
@@ -78,6 +78,7 @@ export function App({
   load = defaultLoad,
   loadAll = defaultLoadAll,
   open = defaultOpen,
+  copy = copyText,
   intervalMs = 60_000,
   now = defaultNow,
   cachePath = defaultCachePath(),
@@ -190,7 +191,7 @@ export function App({
     };
   }, [refresh, intervalMs, initialDelay]);
 
-  const items = buildListItems(data?.prs ?? [], mode);
+  const items = buildListItems(data?.prs ?? []);
   const allRows = prRows(items);
   const count = data?.prs.length ?? 0;
 
@@ -246,6 +247,13 @@ export function App({
       if (row !== undefined) open(row.url);
       return;
     }
+    if (input === "y") {
+      const row = allRows[selectedRef.current];
+      if (row === undefined) return;
+      copy(row.url);
+      setStatus("URL kopiert");
+      return;
+    }
     if (input === "a") {
       if (allRows.length === 0) {
         setStatus("Keine PRs");
@@ -285,8 +293,6 @@ export function App({
     ? Math.min(70, Math.max(40, Math.floor(columns * 0.45)))
     : 0;
   const listWidth = Math.max(20, columns - previewWidth - (previewVisible ? 1 : 0));
-  const longestRepo = Math.max(...allRows.map((row) => row.repoShort.length), 0);
-  const repoWidth = Math.min(20, Math.max(4, longestRepo));
   const longestAuthor = Math.max(
     ...allRows.map((row) => row.author.length + 1),
     0,
@@ -294,16 +300,27 @@ export function App({
   const authorWidth = Math.min(AUTHOR_MAX_WIDTH, Math.max(6, longestAuthor));
   const titleWidth = Math.max(
     1,
-    listWidth -
-      (mode === "all"
-        ? ALL_ROW_CHROME + authorWidth
-        : ROW_CHROME + repoWidth),
+    listWidth - ROW_CHROME - (mode === "all" ? authorWidth + 1 : 0),
   );
+  const keyHints = [
+    "j/k wählen",
+    "Enter PR",
+    "y URL",
+    "a alle",
+    `Tab ${mode === "all" ? "meine" : "alle"}`,
+    "c Checks",
+    "v Codex",
+    "p Vorschau",
+    "r neu laden",
+    "q beenden",
+  ];
+  const footerOneLine = keyHints.join(" · ").length <= columns;
+  const footerSplit = Math.ceil(keyHints.length / 2);
   const noticeRows =
     (data !== null && error !== null ? 1 : 0) +
     (status !== undefined ? 1 : 0) +
     (data !== null && data.total > data.prs.length ? 1 : 0);
-  const footerRows = columns >= FOOTER_ONE_LINE_MIN ? 2 : 3;
+  const footerRows = footerOneLine ? 2 : 3;
   const listHeight = Math.max(1, rows - 2 - footerRows - noticeRows);
   const firstItem = selectedItemIndex(items, selectedRef.current);
   const range = windowRange(items.length, firstItem, listHeight);
@@ -315,17 +332,6 @@ export function App({
       ? []
       : buildPreviewLines(selectedRow, now(), { showAuthor: mode === "all" });
   const firstLoadError = data === null && error !== null;
-  const keyHints = [
-    "j/k wählen",
-    "Enter PR",
-    "a alle",
-    `Tab ${mode === "all" ? "meine" : "alle"}`,
-    "c Checks",
-    "v Codex",
-    "p Vorschau",
-    "r neu laden",
-    "q beenden",
-  ];
 
   return (
     <Box flexDirection="column" height={rows}>
@@ -402,13 +408,10 @@ export function App({
             >
               {visibleItems.map((item, visibleIndex) => {
                 const key = `${range.start + visibleIndex}-${item.kind}`;
-                if (item.kind === "gap") {
-                  return <Text key={key}> </Text>;
-                }
                 if (item.kind === "repo") {
                   return (
                     <Box key={key}>
-                      <Text bold color={THEME.border}>
+                      <Text bold color={THEME.heading}>
                         {item.repo}
                       </Text>
                       <Text color={THEME.muted}>  {item.count}</Text>
@@ -418,10 +421,7 @@ export function App({
                 if (item.kind === "section") {
                   return (
                     <Box key={key}>
-                      <Text bold={item.indent === 0} color={THEME.border}>
-                        {" ".repeat(item.indent)}
-                        {item.name}
-                      </Text>
+                      <Text color={THEME.subheading}>  {item.name}</Text>
                       <Text color={THEME.muted}>  {item.count}</Text>
                     </Box>
                   );
@@ -429,58 +429,35 @@ export function App({
                 if (item.kind === "empty") {
                   return (
                     <Text key={key} color={THEME.muted}>
-                      {" ".repeat(item.indent)}  keine
+                      keine
                     </Text>
                   );
                 }
                 const pr = item.pr;
-                const index = item.index;
-                const cells = buildListRow(pr, {
-                  repo: repoWidth,
-                  title: titleWidth,
-                });
+                const cells = buildListRow(pr, { title: titleWidth });
                 const marker =
-                  index === selectedRef.current ? "▸ " : "  ";
+                  item.index === selectedRef.current ? "▸ " : "  ";
                 return (
                   <Box key={key}>
-                    {item.indent > 0 && <Text>{"  "}</Text>}
+                    <Text>{"  "}</Text>
                     <Text color={THEME.border}>{marker}</Text>
-                    {mode === "all" ? (
-                      <>
-                        <Text color={THEME.muted}>
-                          {cells.number.padStart(NUMBER_WIDTH)}{" "}
-                        </Text>
-                        <Box width={STATUS_WIDTH}>
-                          <Text color={THEME[ciColor(pr.ci.state)]}>
-                            {cells.ci}
-                          </Text>
-                          <Text> </Text>
-                          <Text color={THEME[codexColor(pr.codex.state)]}>
-                            {cells.codex}
-                          </Text>
-                        </Box>
-                        <Text> </Text>
-                        <Text color={THEME.muted}>
-                          {authorCell(pr.author, authorWidth)}{" "}
-                        </Text>
-                      </>
-                    ) : (
-                      <>
-                        <Text color={THEME.text}>{cells.repo} </Text>
-                        <Text color={THEME.muted}>
-                          {cells.number.padStart(NUMBER_WIDTH)}{" "}
-                        </Text>
-                        <Box width={STATUS_WIDTH}>
-                          <Text color={THEME[ciColor(pr.ci.state)]}>
-                            {cells.ci}
-                          </Text>
-                          <Text> </Text>
-                          <Text color={THEME[codexColor(pr.codex.state)]}>
-                            {cells.codex}
-                          </Text>
-                        </Box>
-                        <Text> </Text>
-                      </>
+                    <Text color={THEME.muted}>
+                      {cells.number.padStart(NUMBER_WIDTH)}{" "}
+                    </Text>
+                    <Box width={STATUS_WIDTH}>
+                      <Text color={THEME[ciColor(pr.ci.state)]}>
+                        {cells.ci}
+                      </Text>
+                      <Text> </Text>
+                      <Text color={THEME[codexColor(pr.codex.state)]}>
+                        {cells.codex}
+                      </Text>
+                    </Box>
+                    <Text> </Text>
+                    {mode === "all" && (
+                      <Text color={THEME.muted}>
+                        {authorCell(pr.author, authorWidth)}{" "}
+                      </Text>
                     )}
                     <Box
                       width={titleWidth}
@@ -526,15 +503,15 @@ export function App({
           borderRight={false}
           borderColor={THEME.muted}
         >
-          {columns >= FOOTER_ONE_LINE_MIN ? (
+          {footerOneLine ? (
             <Text color={THEME.muted}>{keyHints.join(" · ")}</Text>
           ) : (
             <Box flexDirection="column">
               <Text color={THEME.muted}>
-                {keyHints.slice(0, -2).join(" · ")}
+                {keyHints.slice(0, footerSplit).join(" · ")}
               </Text>
               <Text color={THEME.muted}>
-                {keyHints.slice(-2).join(" · ")}
+                {keyHints.slice(footerSplit).join(" · ")}
               </Text>
             </Box>
           )}

@@ -2,7 +2,7 @@
 
 A read-only terminal dashboard for your open pull requests and every open pull request in the Merlin-Digital-Solutions organization.
 
-The dashboard shows one row per pull request. Each row lists the pull request number, the CI state, the Codex review state, and the title. Your own view adds the repository to the row. The all-authors view adds the author and groups the rows by repository. A preview pane on the right shows details of the selected pull request. The preview hides when the terminal is narrower than 100 columns.
+The dashboard shows one row per pull request, grouped under repository headings with `OPEN` and `DRAFT` subheadings. Each row lists the pull request number, the CI state, the Codex review state, and the title. The all-authors view also shows the author. A preview pane on the right shows details of the selected pull request. The preview hides when the terminal is narrower than 100 columns.
 
 ## Install
 
@@ -27,6 +27,7 @@ prs
 | --- | --- |
 | `j`, `k` | Move down and up. |
 | `Enter`, `o` | Open the selected pull request in the browser. |
+| `y` | Copy the URL of the selected pull request to the clipboard. |
 | `a` | Open every listed pull request in the browser. |
 | `Tab` | Switch between your pull requests and all open pull requests in the organization. |
 | `c` | Open the Checks page of the selected pull request. |

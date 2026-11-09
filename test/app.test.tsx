@@ -235,7 +235,7 @@ test("renders the loading header and footer on first render", () => {
   expect(output).toContain("q beenden");
 });
 
-test("shows both section headers with keine placeholders when empty", async () => {
+test("shows keine when there are no pull requests", async () => {
   const output = await renderLive(
     <App
       load={emptyLoad}
@@ -245,9 +245,8 @@ test("shows both section headers with keine placeholders when empty", async () =
       cachePath={null}
     />,
   );
-  expect(output).toContain("OPEN  0");
-  expect(output).toContain("DRAFT  0");
   expect(output).toContain("keine");
+  expect(output).not.toContain("OPEN  0");
 });
 
 test("renders the rows once loading resolves", async () => {
@@ -338,6 +337,47 @@ test("keeps the author column hidden in mine mode", async () => {
     80,
   );
   expect(output).not.toContain("@tim-hilde");
+});
+
+test("groups the mine view under repository headings too", async () => {
+  const output = stripAnsi(
+    await renderLive(
+      <App
+        load={allLoad}
+        open={open}
+        now={now}
+        intervalMs={60_000}
+        cachePath={null}
+      />,
+      80,
+    ),
+  );
+  const frame = output.slice(output.lastIndexOf("Merlin-Digital-Solutions"));
+  expect(frame).toContain("merlin-dashboard  2");
+  expect(frame).toContain("  OPEN  1");
+  expect(frame).toContain("  DRAFT  1");
+  expect(frame).toContain("merlin-spricht  1");
+  expect(frame).toMatch(/▸\s+#876 ✗ ✗ feat\(krise\)/);
+});
+
+test("copies the selected pull request URL on y", async () => {
+  const copied: string[] = [];
+  const output = await renderPress(
+    <App
+      load={load}
+      open={open}
+      copy={(text) => copied.push(text)}
+      now={now}
+      intervalMs={60_000}
+      cachePath={null}
+    />,
+    "y",
+    "#876",
+    "URL kopiert",
+    80,
+  );
+  expect(output).toContain("URL kopiert");
+  expect(copied).toEqual([sample.url]);
 });
 
 test("removes the author filter on Tab and groups by repository", async () => {
@@ -437,10 +477,10 @@ test("renders the preview pane header line once per frame", async () => {
     120,
   );
   const header = "#876 · merlin-dashboard";
-  const titleLine = "feat(krise): let admins add web pages of approved";
+  const branchLine = "feat/krise → main";
   const count = (needle: string) => output.split(needle).length - 1;
   expect(count(header)).toBeGreaterThan(0);
-  expect(count(header)).toBe(count(titleLine));
+  expect(count(header)).toBe(count(branchLine));
 });
 
 test("hides the preview pane on narrow terminals", async () => {

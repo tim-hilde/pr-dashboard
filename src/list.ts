@@ -4,72 +4,46 @@ import type { PullRequest } from "./types";
 export type ListMode = "mine" | "all";
 
 export type ListItem =
-  | { kind: "gap" }
   | { kind: "repo"; repo: string; count: number }
-  | { kind: "section"; name: "OPEN" | "DRAFT"; count: number; indent: number }
-  | { kind: "pr"; pr: PullRequest; index: number; indent: number }
-  | { kind: "empty"; indent: number };
+  | { kind: "section"; name: "OPEN" | "DRAFT"; count: number }
+  | { kind: "pr"; pr: PullRequest; index: number }
+  | { kind: "empty" };
 
-export function buildListItems(prs: PullRequest[], mode: ListMode): ListItem[] {
+export function buildListItems(prs: PullRequest[]): ListItem[] {
   const sorted = sortPullRequests(prs);
+  const groups = new Map<string, { OPEN: PullRequest[]; DRAFT: PullRequest[] }>();
+  const groupOf = (repo: string) => {
+    let group = groups.get(repo);
+    if (group === undefined) {
+      group = { OPEN: [], DRAFT: [] };
+      groups.set(repo, group);
+    }
+    return group;
+  };
+  for (const pr of sorted.open) groupOf(pr.repoShort).OPEN.push(pr);
+  for (const pr of sorted.draft) groupOf(pr.repoShort).DRAFT.push(pr);
+
+  if (groups.size === 0) return [{ kind: "empty" }];
+
   const items: ListItem[] = [];
   let index = 0;
-
-  const pushSection = (
-    name: "OPEN" | "DRAFT",
-    sectionPrs: PullRequest[],
-    indent: number,
-  ) => {
-    items.push({ kind: "section", name, count: sectionPrs.length, indent });
-    if (sectionPrs.length === 0) {
-      items.push({ kind: "empty", indent });
-      return;
-    }
-    for (const pr of sectionPrs) {
-      items.push({ kind: "pr", pr, index, indent });
-      index += 1;
-    }
-  };
-
-  if (mode === "mine") {
-    pushSection("OPEN", sorted.open, 0);
-    items.push({ kind: "gap" });
-    pushSection("DRAFT", sorted.draft, 0);
-    return items;
-  }
-
-  const groups = new Map<
-    string,
-    { open: PullRequest[]; draft: PullRequest[] }
-  >();
-  for (const pr of sorted.open) {
-    const group = groups.get(pr.repoShort) ?? { open: [], draft: [] };
-    group.open.push(pr);
-    groups.set(pr.repoShort, group);
-  }
-  for (const pr of sorted.draft) {
-    const group = groups.get(pr.repoShort) ?? { open: [], draft: [] };
-    group.draft.push(pr);
-    groups.set(pr.repoShort, group);
-  }
-
-  const repos = [...groups.keys()].sort((a, b) => a.localeCompare(b));
-  if (repos.length === 0) {
-    items.push({ kind: "empty", indent: 0 });
-    return items;
-  }
-
-  repos.forEach((repo) => {
-    const group = groups.get(repo);
-    if (group === undefined) return;
+  const repos = [...groups.entries()].sort(([a], [b]) => a.localeCompare(b));
+  for (const [repo, group] of repos) {
     items.push({
       kind: "repo",
       repo,
-      count: group.open.length + group.draft.length,
+      count: group.OPEN.length + group.DRAFT.length,
     });
-    if (group.open.length > 0) pushSection("OPEN", group.open, 2);
-    if (group.draft.length > 0) pushSection("DRAFT", group.draft, 2);
-  });
+    for (const name of ["OPEN", "DRAFT"] as const) {
+      const sectionPrs = group[name];
+      if (sectionPrs.length === 0) continue;
+      items.push({ kind: "section", name, count: sectionPrs.length });
+      for (const pr of sectionPrs) {
+        items.push({ kind: "pr", pr, index });
+        index += 1;
+      }
+    }
+  }
   return items;
 }
 

@@ -26,8 +26,7 @@ const pr = (overrides: Partial<PullRequest> = {}): PullRequest => ({
 });
 
 test("builds a truncated list row", () => {
-  const row = buildListRow(pr(), { repo: 16, title: 20 });
-  expect(row.repo).toBe("merlin-dashboard");
+  const row = buildListRow(pr(), { title: 20 });
   expect(row.number).toBe("#876");
   expect(row.title).toBe("feat(krise): let ad…");
   expect(row.ci).toBe("✗");

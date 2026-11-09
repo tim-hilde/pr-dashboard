@@ -35,10 +35,9 @@ const CODEX_NAMES: Record<CodexState, string> = {
 
 export function buildListRow(
   pr: PullRequest,
-  widths: { repo: number; title: number },
-): { repo: string; number: string; title: string; ci: string; codex: string } {
+  widths: { title: number },
+): { number: string; title: string; ci: string; codex: string } {
   return {
-    repo: truncate(pr.repoShort, widths.repo).padEnd(widths.repo),
     number: `#${pr.number}`,
     title: truncate(pr.title, widths.title),
     ci: ciCell(pr.ci.state),
