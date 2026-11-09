@@ -465,6 +465,134 @@ test("shows the cached all-authors rows on Tab without fetching", async () => {
   }
 });
 
+function mountApp(element: React.ReactElement, columns = 80) {
+  let output = "";
+  const stdout = new Writable({
+    write(chunk, _encoding, callback) {
+      output += String(chunk);
+      callback();
+    },
+  }) as Writable & { columns: number; rows: number };
+  stdout.columns = columns;
+  stdout.rows = 40;
+  const stdin = new PassThrough() as PassThrough & {
+    setRawMode: (enabled: boolean) => PassThrough;
+    isTTY: boolean;
+  };
+  stdin.setRawMode = () => stdin;
+  stdin.isTTY = true;
+  const instance = render(element, {
+    stdout,
+    stdin,
+    stderr: new Writable({ write: (_c, _e, cb) => cb() }),
+    patchConsole: false,
+    debug: true,
+  });
+  const lastFrame = () => {
+    const plain = stripAnsi(output);
+    return plain.slice(plain.lastIndexOf("Merlin-Digital-Solutions"));
+  };
+  return {
+    lastFrame,
+    press: (key: string) => {
+      stdin.write(key);
+    },
+    waitFor: async (check: (frame: string) => boolean, label: string) => {
+      const deadline = Date.now() + 2_000;
+      while (!check(lastFrame())) {
+        if (Date.now() > deadline) {
+          throw new Error(`timed out waiting for ${label}: ${lastFrame()}`);
+        }
+        await new Promise((resolve) => setTimeout(resolve, 20));
+      }
+    },
+    unmount: async () => {
+      instance.unmount();
+      await instance.waitUntilExit();
+    },
+  };
+}
+
+test("clears the loading label after leaving a running fetch and coming back", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "prs-app-cache-"));
+  const cachePath = join(dir, "prs.json");
+  writeCache(cachePath, {
+    version: 1,
+    fetchedAt: "2026-11-06T12:00:00.000Z",
+    result,
+  });
+  let release: (value: FetchResult) => void = () => {};
+  const pendingAll = () =>
+    new Promise<FetchResult>((resolve) => {
+      release = resolve;
+    });
+  const app = mountApp(
+    <App
+      load={load}
+      loadAll={pendingAll}
+      open={open}
+      now={now}
+      intervalMs={60_000}
+      cachePath={cachePath}
+      cacheTtlMs={60_000}
+    />,
+  );
+  try {
+    await app.waitFor((frame) => frame.includes("#876"), "mine rows");
+    app.press("\t");
+    await app.waitFor(
+      (frame) => frame.includes("alle Autoren") && frame.includes("lädt"),
+      "running all fetch",
+    );
+    app.press("\t");
+    await app.waitFor(
+      (frame) => !frame.includes("alle Autoren") && frame.includes("#876"),
+      "mine view again",
+    );
+    expect(app.lastFrame()).not.toContain("lädt");
+    release(allResult);
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect(app.lastFrame()).not.toContain("lädt");
+  } finally {
+    await app.unmount();
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("keeps the selected pull request when a refresh adds rows above it", async () => {
+  const earlier: PullRequest = {
+    ...sample,
+    repo: "Merlin-Digital-Solutions/aaa-repo",
+    repoShort: "aaa-repo",
+    number: 5,
+    title: "earlier",
+    url: "https://github.com/Merlin-Digital-Solutions/aaa-repo/pull/5",
+  };
+  let calls = 0;
+  const growingLoad = async (): Promise<FetchResult> => {
+    calls += 1;
+    return calls === 1 ? result : { prs: [earlier, sample], total: 2 };
+  };
+  const app = mountApp(
+    <App
+      load={growingLoad}
+      open={open}
+      now={now}
+      intervalMs={60_000}
+      cachePath={null}
+    />,
+  );
+  try {
+    await app.waitFor((frame) => frame.includes("#876"), "first rows");
+    app.press("r");
+    await app.waitFor((frame) => frame.includes("aaa-repo"), "refreshed rows");
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(app.lastFrame()).toMatch(/▸\s+#876/);
+  } finally {
+    await app.unmount();
+  }
+});
+
 test("renders the preview pane header line once per frame", async () => {
   const output = await renderLive(
     <App

@@ -15,6 +15,7 @@ import { openUrl } from "./open";
 import { copyText } from "./clipboard";
 import { applyEvent } from "./state";
 import type { DashboardState } from "./state";
+import type { PullRequest } from "./types";
 import { ciColor, codexColor } from "./format";
 import { buildListRow, buildPreviewLines, authorCell } from "./view";
 import type { PreviewLine } from "./view";
@@ -117,6 +118,7 @@ export function App({
   const [status, setStatus] = useState<string>();
   const inFlightRef = useRef(new Set<ListMode>());
   const selectedRef = useRef(0);
+  const rowsRef = useRef<PullRequest[]>([]);
   const { columns, rows } = useWindowSize();
   const { exit } = useApp();
   const { isRawModeSupported } = useStdin();
@@ -148,10 +150,15 @@ export function App({
         }
       }
       if (modeRef.current !== current) return;
+      const selectedUrl = rowsRef.current[selectedRef.current]?.url;
+      const nextRows = prRows(buildListItems(result.prs));
+      const kept = nextRows.findIndex((row) => row.url === selectedUrl);
       dispatch({ kind: "refresh", outcome: { ok: true, data: result, at } });
       setCached(false);
       setSelected(
-        Math.max(0, Math.min(selectedRef.current, result.prs.length - 1)),
+        kept >= 0
+          ? kept
+          : Math.max(0, Math.min(selectedRef.current, nextRows.length - 1)),
       );
     } catch (err) {
       if (modeRef.current === current) {
@@ -193,6 +200,7 @@ export function App({
 
   const items = buildListItems(data?.prs ?? []);
   const allRows = prRows(items);
+  rowsRef.current = allRows;
   const count = data?.prs.length ?? 0;
 
   useEffect(() => {
@@ -213,7 +221,7 @@ export function App({
       return;
     }
     if (key.tab) {
-      const next: ListMode = mode === "mine" ? "all" : "mine";
+      const next: ListMode = modeRef.current === "mine" ? "all" : "mine";
       modeRef.current = next;
       setMode(next);
       const path = next === "all" ? cachePaths.all : cachePaths.mine;
@@ -230,6 +238,7 @@ export function App({
               },
       });
       setCached(entry !== null);
+      setLoading(inFlightRef.current.has(next));
       setSelected(0);
       setStatus(undefined);
       return;
@@ -302,12 +311,13 @@ export function App({
     1,
     listWidth - ROW_CHROME - (mode === "all" ? authorWidth + 1 : 0),
   );
+  const tabHint = `Tab ${mode === "all" ? "meine" : "alle"}`;
   const keyHints = [
     "j/k wählen",
     "Enter PR",
     "y URL",
-    "a alle",
-    `Tab ${mode === "all" ? "meine" : "alle"}`,
+    "a alle öffnen",
+    tabHint,
     "c Checks",
     "v Codex",
     "p Vorschau",
@@ -364,17 +374,21 @@ export function App({
       </Box>
       {data !== null && error !== null && (
         <Box>
-          <Text color={THEME.red}>! {error}</Text>
+          <Text color={THEME.red} wrap="truncate">
+            ! {error}
+          </Text>
         </Box>
       )}
       {status !== undefined && (
         <Box>
-          <Text color={THEME.yellow}>{status}</Text>
+          <Text color={THEME.yellow} wrap="truncate">
+            {status}
+          </Text>
         </Box>
       )}
       {data !== null && data.total > data.prs.length && (
         <Box>
-          <Text color={THEME.muted}>
+          <Text color={THEME.muted} wrap="truncate">
             Nur die ersten {data.prs.length} von {data.total} PRs
           </Text>
         </Box>
@@ -391,7 +405,9 @@ export function App({
                 flexDirection="column"
               >
                 <Text color={THEME.red}>! {error}</Text>
-                <Text color={THEME.muted}>r neu laden · q beenden</Text>
+                <Text color={THEME.muted}>
+                  r neu laden · {tabHint} · q beenden
+                </Text>
               </Box>
             </Box>
           ) : (
@@ -410,20 +426,20 @@ export function App({
                 const key = `${range.start + visibleIndex}-${item.kind}`;
                 if (item.kind === "repo") {
                   return (
-                    <Box key={key}>
+                    <Text key={key} wrap="truncate">
                       <Text bold color={THEME.heading}>
                         {item.repo}
                       </Text>
                       <Text color={THEME.muted}>  {item.count}</Text>
-                    </Box>
+                    </Text>
                   );
                 }
                 if (item.kind === "section") {
                   return (
-                    <Box key={key}>
+                    <Text key={key} wrap="truncate">
                       <Text color={THEME.subheading}>  {item.name}</Text>
                       <Text color={THEME.muted}>  {item.count}</Text>
-                    </Box>
+                    </Text>
                   );
                 }
                 if (item.kind === "empty") {
