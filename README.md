@@ -48,6 +48,7 @@ prs
 - The all-authors cache lives at `~/.cache/pr-dashboard/prs-all.json`.
 - The cache refreshes every 60 seconds and on `r`.
 - The cache is local and read-only.
+- Every fetch also writes one file per pull request to `~/.cache/pr-data/`, so the OpenCode pr sidebar reads the same data.
 
 ## Tests
 
