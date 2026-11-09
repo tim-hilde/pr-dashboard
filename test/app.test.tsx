@@ -134,6 +134,72 @@ test("puts the status cells behind the pull request number", async () => {
   expect(output).toMatch(/#876\s+✗ ✗\s+feat\(krise\)/);
 });
 
+test("opens every listed pull request on A", async () => {
+  const opened: string[] = [];
+  const second: PullRequest = {
+    ...sample,
+    repo: "Merlin-Digital-Solutions/merlin-spricht",
+    repoShort: "merlin-spricht",
+    number: 930,
+    url: "https://github.com/Merlin-Digital-Solutions/merlin-spricht/pull/930",
+  };
+  const twoLoad = async () => ({ prs: [sample, second], total: 2 });
+  await new Promise<void>((resolve, reject) => {
+    let output = "";
+    const stdout = new Writable({
+      write(chunk, _encoding, callback) {
+        output += String(chunk);
+        callback();
+      },
+    }) as Writable & { columns: number; rows: number };
+    stdout.columns = 120;
+    stdout.rows = 40;
+    const stdin = new PassThrough() as PassThrough & {
+      setRawMode: (enabled: boolean) => PassThrough;
+      isTTY: boolean;
+    };
+    stdin.setRawMode = () => stdin;
+    stdin.isTTY = true;
+    const instance = render(
+      <App
+        load={twoLoad}
+        open={(url) => opened.push(url)}
+        now={now}
+        intervalMs={60_000}
+        cachePath={null}
+      />,
+      {
+        stdout,
+        stdin,
+        stderr: new Writable({ write: (_c, _e, cb) => cb() }),
+        patchConsole: false,
+        debug: true,
+      },
+    );
+    const timer = setInterval(() => {
+      if (!output.includes("#930")) return;
+      clearInterval(timer);
+      clearTimeout(timeout);
+      stdin.write("A");
+      setTimeout(() => {
+        instance.unmount();
+        void instance.waitUntilExit().then(
+          () => resolve(),
+          reject,
+        );
+      }, 50);
+    }, 20);
+    const timeout = setTimeout(() => {
+      clearInterval(timer);
+      instance.unmount();
+      reject(
+        new Error(`render did not show both rows: ${JSON.stringify(output)}`),
+      );
+    }, 2_000);
+  });
+  expect(opened).toEqual([sample.url, second.url]);
+});
+
 test("renders the loading header and footer on first render", () => {
   const output = renderToString(
     <App load={emptyLoad} cachePath={null} />,
