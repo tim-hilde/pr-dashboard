@@ -134,7 +134,7 @@ test("puts the status cells behind the pull request number", async () => {
   expect(output).toMatch(/#876\s+✗ ✗\s+feat\(krise\)/);
 });
 
-test("opens every listed pull request on A", async () => {
+test("opens every listed pull request on a", async () => {
   const opened: string[] = [];
   const second: PullRequest = {
     ...sample,
@@ -180,7 +180,7 @@ test("opens every listed pull request on A", async () => {
       if (!output.includes("#930")) return;
       clearInterval(timer);
       clearTimeout(timeout);
-      stdin.write("A");
+      stdin.write("a");
       setTimeout(() => {
         instance.unmount();
         void instance.waitUntilExit().then(

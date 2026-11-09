@@ -199,7 +199,7 @@ export function App({
       if (row !== undefined) open(row.url);
       return;
     }
-    if (input === "A") {
+    if (input === "a") {
       if (allRows.length === 0) {
         setStatus("Keine PRs");
       } else {
@@ -411,13 +411,13 @@ export function App({
         >
           {columns >= 90 ? (
             <Text color={THEME.muted}>
-              j/k wählen · Enter PR · A alle · c Checks · v Codex · p Vorschau · r neu
+              j/k wählen · Enter PR · a alle · c Checks · v Codex · p Vorschau · r neu
               laden · q beenden
             </Text>
           ) : (
             <Box flexDirection="column">
               <Text color={THEME.muted}>
-                j/k wählen · Enter PR · A alle · c Checks · v Codex · p Vorschau
+                j/k wählen · Enter PR · a alle · c Checks · v Codex · p Vorschau
               </Text>
               <Text color={THEME.muted}>r neu laden · q beenden</Text>
             </Box>

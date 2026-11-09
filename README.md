@@ -27,7 +27,7 @@ prs
 | --- | --- |
 | `j`, `k` | Move down and up. |
 | `Enter`, `o` | Open the selected pull request in the browser. |
-| `A` | Open every listed pull request in the browser. |
+| `a` | Open every listed pull request in the browser. |
 | `c` | Open the Checks page of the selected pull request. |
 | `v` | Open the Codex review comment, when one exists. |
 | `p` | Toggle the preview pane. |
