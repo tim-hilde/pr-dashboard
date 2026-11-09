@@ -45,12 +45,15 @@ export type RawCheckContext =
       conclusion: string | null;
       startedAt?: string | null;
       detailsUrl?: string | null;
+      checkSuite?: {
+        workflowRun: { event: string; workflow: { name: string } | null } | null;
+      } | null;
     }
   | { __typename: "StatusContext"; context: string; state: string; createdAt?: string | null; targetUrl?: string | null };
 
 export type RawStatusCheckRollup = {
   state: string | null;
-  contexts: { nodes: RawCheckContext[] } | null;
+  contexts: { nodes: RawCheckContext[]; pageInfo?: { hasNextPage: boolean } | null } | null;
 } | null;
 
 export type RawPullRequest = {

@@ -41,7 +41,28 @@ test("caps the failed list at five names and removes duplicates", () => {
 test("maps null and no checks to none", () => {
   expect(mapCi(null)).toEqual({ state: "none", failed: [] });
   expect(mapCi({ state: null, contexts: null })).toEqual({ state: "none", failed: [] });
-  expect(mapCi({ state: "SUCCESS", contexts: { nodes: [] } })).toEqual({ state: "none", failed: [] });
+  expect(mapCi({ state: null, contexts: { nodes: [] } })).toEqual({ state: "none", failed: [] });
+});
+
+test("falls back to GitHub's overall state when the check list is missing or cut off", () => {
+  expect(mapCi({ state: "SUCCESS", contexts: { nodes: [] } }).state).toBe("success");
+  expect(
+    mapCi({ state: "FAILURE", contexts: { nodes: [], pageInfo: { hasNextPage: true } } }).state,
+  ).toBe("failure");
+  expect(
+    mapCi({
+      state: "PENDING",
+      contexts: { nodes: [check("unit", null, "2026-11-09T12:00:00Z", "IN_PROGRESS")], pageInfo: { hasNextPage: true } },
+    }).state,
+  ).toBe("pending");
+});
+
+test("keeps a job with the same name in different workflows apart", () => {
+  const suite = (event: string, workflow: string) => ({ workflowRun: { event, workflow: { name: workflow } } });
+  const failedRun = { ...check("test", "FAILURE", "2026-11-09T12:31:17Z"), checkSuite: suite("push", "ci") };
+  const passed = { ...check("test", "SUCCESS", "2026-11-09T12:32:25Z"), checkSuite: suite("pull_request", "ci") };
+  expect(mapCi({ state: "FAILURE", contexts: { nodes: [failedRun, passed] } }).state).toBe("failure");
+  expect(mapCi({ state: "SUCCESS", contexts: { nodes: [passed, failedRun] } }).state).toBe("failure");
 });
 
 test("stays pending while a check still runs, even after another check failed", () => {

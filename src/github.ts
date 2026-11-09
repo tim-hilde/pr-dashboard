@@ -34,10 +34,18 @@ query($q: String!) {
               committedDate
               statusCheckRollup {
                 state
-                contexts(first: 50) {
+                contexts(first: 100) {
+                  pageInfo { hasNextPage }
                   nodes {
                     __typename
-                    ... on CheckRun { name status conclusion detailsUrl startedAt }
+                    ... on CheckRun {
+                      name
+                      status
+                      conclusion
+                      detailsUrl
+                      startedAt
+                      checkSuite { workflowRun { event workflow { name } } }
+                    }
                     ... on StatusContext { context state createdAt targetUrl }
                   }
                 }

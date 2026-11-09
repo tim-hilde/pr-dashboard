@@ -6,6 +6,7 @@ const PENDING_CONTEXT_STATES = new Set(["PENDING", "EXPECTED"]);
 const MAX_FAILED = 5;
 
 // The same rule as the OpenCode pr sidebar (`opencode/lib/pull-request.js` ciState), so both show one state.
+// When the check list is missing or cut off by the page size, GitHub's own overall state decides.
 const completed = (node: RawCheckContext): boolean =>
   node.__typename === "StatusContext" || node.status == null || node.status === "COMPLETED";
 
@@ -32,16 +33,30 @@ const startedAt = (node: RawCheckContext): number => {
 function newestChecks(nodes: RawCheckContext[]): RawCheckContext[] {
   const newest = new Map<string, RawCheckContext>();
   for (const node of nodes) {
-    const key = node.__typename === "StatusContext" ? `context:${node.context}` : `run:${node.name}`;
+    const suite = node.__typename === "CheckRun" ? node.checkSuite?.workflowRun : undefined;
+    const key =
+      node.__typename === "StatusContext"
+        ? `context:${node.context}`
+        : `run:${suite?.event ?? ""}:${suite?.workflow?.name ?? ""}:${node.name}`;
     const seen = newest.get(key);
     if (seen === undefined || startedAt(node) >= startedAt(seen)) newest.set(key, node);
   }
   return [...newest.values()];
 }
 
+function ciFromAggregate(state: string | null): CiState {
+  if (state === null) return "none";
+  if (state === "SUCCESS") return "success";
+  if (state === "FAILURE" || state === "ERROR") return "failure";
+  return "pending";
+}
+
 export function mapCi(rollup: RawStatusCheckRollup): CiInfo {
-  const nodes = rollup?.contexts?.nodes ?? [];
-  if (nodes.length === 0) return { state: "none", failed: [] };
+  const contexts = rollup?.contexts;
+  const nodes = contexts?.nodes ?? [];
+  if (nodes.length === 0 || contexts?.pageInfo?.hasNextPage) {
+    return { state: ciFromAggregate(rollup?.state ?? null), failed: [] };
+  }
 
   const newest = newestChecks(nodes);
   const failedNames: string[] = [];
