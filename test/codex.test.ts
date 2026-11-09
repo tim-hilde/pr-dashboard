@@ -48,6 +48,17 @@ describe("parseCodexComment", () => {
     expect(state(body("x", " ", " ")).verdictText).toContain("Approve");
   });
 
+  test("takes the first option named in the verdict, not a later mention", () => {
+    const state = (verdict: string) =>
+      parseCodexComment(
+        [comment(`<!-- codex-review -->\n## Verdict\n${verdict}\n\n## Required Changes\nNone`)],
+        HEAD,
+      ).state;
+    expect(state("**💬 Comment** — No blockers. Approve after the nits.")).toBe("comments");
+    expect(state("**✅ Approve** — nothing here warrants Request Changes.")).toBe("approved");
+    expect(state("**🔄 Request Changes** — do not Approve yet.")).toBe("changes");
+  });
+
   test("maps comment to approved with comments", async () => {
     const info = parseCodexComment([comment(await read("codex-comment.md"))], HEAD);
     expect(info.state).toBe("comments");

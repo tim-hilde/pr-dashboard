@@ -53,12 +53,15 @@ export function parseCodexComment(
     .find((line) => line !== "");
   if (verdictLine !== undefined) info.verdictText = verdictLine;
 
-  if (verdict.includes("Request Changes")) {
-    info.state = "changes";
-  } else if (verdict.includes("Approve")) {
-    info.state = "approved";
-  } else if (verdict.includes("Comment")) {
-    info.state = "comments";
+  const named = (
+    [
+      ["changes", verdict.indexOf("Request Changes")],
+      ["approved", verdict.indexOf("Approve")],
+      ["comments", verdict.indexOf("Comment")],
+    ] as const
+  ).filter(([, index]) => index !== -1);
+  if (named.length > 0) {
+    info.state = named.reduce((a, b) => (b[1] < a[1] ? b : a))[0];
   }
 
   const requiredSection = extractSection(chosen.body, "Required Changes");
