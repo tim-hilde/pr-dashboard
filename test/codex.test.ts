@@ -27,6 +27,27 @@ describe("parseCodexComment", () => {
     expect(info.commentUrl).toBe("https://example.test/comment");
   });
 
+  test("ignores the unticked options of a checklist verdict", () => {
+    const body = (approve: string, comment: string, changes: string) =>
+      [
+        "<!-- codex-review -->",
+        "## Verdict",
+        `**[${approve}] ✅ Approve**  `,
+        `**[${comment}] 💬 Comment**  `,
+        `**[${changes}] 🔄 Request Changes** — text`,
+        "",
+        "## Required Changes",
+        "None",
+      ].join("\n");
+    const state = (text: string) =>
+      parseCodexComment([comment(text)], HEAD);
+    expect(state(body("x", " ", " ")).state).toBe("approved");
+    expect(state(body(" ", "x", " ")).state).toBe("comments");
+    expect(state(body(" ", " ", "x")).state).toBe("changes");
+    expect(state(body(" ", " ", "x")).verdictText).toContain("Request Changes");
+    expect(state(body("x", " ", " ")).verdictText).toContain("Approve");
+  });
+
   test("maps comment to approved with comments", async () => {
     const info = parseCodexComment([comment(await read("codex-comment.md"))], HEAD);
     expect(info.state).toBe("comments");

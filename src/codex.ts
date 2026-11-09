@@ -43,7 +43,10 @@ export function parseCodexComment(
     createdAt: chosen.createdAt,
   };
 
-  const verdict = extractSection(chosen.body, "Verdict");
+  const verdict = extractSection(chosen.body, "Verdict")
+    .split("\n")
+    .filter((line) => !line.includes("[ ]"))
+    .join("\n");
   const verdictLine = verdict
     .split("\n")
     .map(stripMarkdown)
