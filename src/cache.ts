@@ -14,6 +14,7 @@ function isPullRequest(value: unknown): boolean {
   return (
     typeof pr.repo === "string" &&
     typeof pr.repoShort === "string" &&
+    typeof pr.author === "string" &&
     typeof pr.title === "string" &&
     typeof pr.url === "string" &&
     typeof pr.updatedAt === "string" &&
@@ -42,6 +43,13 @@ export type CacheEntry = {
 export function defaultCachePath(): string {
   const base = process.env.XDG_CACHE_HOME ?? join(homedir(), ".cache");
   return join(base, "pr-dashboard", "prs.json");
+}
+
+export function allPrsCachePath(path: string): string {
+  const suffix = ".json";
+  return path.endsWith(suffix)
+    ? `${path.slice(0, -suffix.length)}-all${suffix}`
+    : `${path}-all`;
 }
 
 export function readCache(path: string): CacheEntry | null {

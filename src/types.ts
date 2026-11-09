@@ -17,6 +17,7 @@ export type CodexInfo = {
 export type PullRequest = {
   repo: string;
   repoShort: string;
+  author: string;
   number: number;
   title: string;
   url: string;
@@ -53,6 +54,7 @@ export type RawPullRequest = {
   updatedAt: string;
   headRefName: string;
   baseRefName: string;
+  author: { login: string } | null;
   repository: { nameWithOwner: string };
   commits: {
     nodes: {

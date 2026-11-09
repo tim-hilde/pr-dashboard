@@ -5,6 +5,7 @@ import type { PullRequest } from "../src/types";
 const pr = (overrides: Partial<PullRequest>): PullRequest => ({
   repo: "Merlin-Digital-Solutions/merlin-dashboard",
   repoShort: "merlin-dashboard",
+  author: "tim-hilde",
   number: 1,
   title: "title",
   url: "https://example.test",

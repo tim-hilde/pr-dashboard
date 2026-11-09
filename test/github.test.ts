@@ -28,6 +28,7 @@ test("maps the search response", () => {
   expect(result.prs).toHaveLength(3);
 
   const changed = result.prs.find((pr) => pr.number === 876)!;
+  expect(changed.author).toBe("tim-hilde");
   expect(changed.ci.state).toBe("failure");
   expect(changed.ci.failed).toEqual(["unit", "lint"]);
   expect(changed.codex.state).toBe("changes");
@@ -51,6 +52,16 @@ test("fetches with the explicit login", async () => {
   const result = await fetchPullRequests("tim-hilde", run);
   expect(result.total).toBe(3);
   expect(calls[0]).toContain("q=is:pr is:open author:tim-hilde org:Merlin-Digital-Solutions");
+});
+
+test("fetches every author without a login", async () => {
+  const calls: string[][] = [];
+  const run: GhRunner = async (args) => {
+    calls.push(args);
+    return JSON.stringify(fixture);
+  };
+  await fetchPullRequests(null, run);
+  expect(calls[0]).toContain("q=is:pr is:open org:Merlin-Digital-Solutions");
 });
 
 test("returns an empty result", async () => {

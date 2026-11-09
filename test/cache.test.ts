@@ -3,6 +3,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
+  allPrsCachePath,
   cacheAge,
   defaultCachePath,
   isFresh,
@@ -16,6 +17,7 @@ import type { PullRequest } from "../src/types";
 const sample: PullRequest = {
   repo: "Merlin-Digital-Solutions/merlin-dashboard",
   repoShort: "merlin-dashboard",
+  author: "tim-hilde",
   number: 876,
   title: "feat(krise): let admins add web pages of approved domains",
   url: "https://github.com/Merlin-Digital-Solutions/merlin-dashboard/pull/876",
@@ -107,4 +109,9 @@ test("uses the XDG cache directory when set", () => {
     if (previous === undefined) delete process.env.XDG_CACHE_HOME;
     else process.env.XDG_CACHE_HOME = previous;
   }
+});
+
+test("derives the all-authors cache path", () => {
+  expect(allPrsCachePath("/tmp/prs/prs.json")).toBe("/tmp/prs/prs-all.json");
+  expect(allPrsCachePath("/tmp/prs/cache")).toBe("/tmp/prs/cache-all");
 });

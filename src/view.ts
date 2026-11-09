@@ -46,15 +46,24 @@ export function buildListRow(
   };
 }
 
-export function buildPreviewLines(pr: PullRequest, now: Date): PreviewLine[] {
+export function authorCell(author: string, width: number): string {
+  return truncate(`@${author}`, width).padEnd(width);
+}
+
+export function buildPreviewLines(
+  pr: PullRequest,
+  now: Date,
+  options: { showAuthor?: boolean } = {},
+): PreviewLine[] {
   const lines: PreviewLine[] = [];
 
   lines.push({ text: `#${pr.number} · ${pr.repoShort}`, color: "accent", bold: true });
   lines.push({ text: pr.title, bold: true });
 
   const state = pr.isDraft ? "Draft" : "offen";
+  const author = options.showAuthor === true ? ` · @${pr.author}` : "";
   lines.push({
-    text: `${pr.headRef} → ${pr.baseRef} · ${state} · ${relativeTime(pr.updatedAt, now)}`,
+    text: `${pr.headRef} → ${pr.baseRef} · ${state} · ${relativeTime(pr.updatedAt, now)}${author}`,
     dim: true,
   });
   lines.push({ text: "" });

@@ -26,6 +26,7 @@ query($q: String!) {
         updatedAt
         headRefName
         baseRefName
+        author { login }
         repository { nameWithOwner }
         commits(last: 1) {
           nodes {
@@ -72,10 +73,11 @@ export async function resolveLogin(run: GhRunner = runGh): Promise<string> {
 }
 
 export async function fetchPullRequests(
-  login: string,
+  login: string | null,
   run: GhRunner = runGh,
 ): Promise<FetchResult> {
-  const q = `is:pr is:open author:${login} org:Merlin-Digital-Solutions`;
+  const author = login === null ? "" : ` author:${login}`;
+  const q = `is:pr is:open${author} org:Merlin-Digital-Solutions`;
   const out = await run([
     "api",
     "graphql",
@@ -108,6 +110,7 @@ function mapPullRequest(node: RawPullRequest): PullRequest {
   return {
     repo: node.repository.nameWithOwner,
     repoShort: node.repository.nameWithOwner.split("/")[1] ?? "",
+    author: node.author?.login ?? "unbekannt",
     number: node.number,
     title: node.title,
     url: node.url,

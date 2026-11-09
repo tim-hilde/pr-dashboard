@@ -10,6 +10,10 @@ export type RefreshOutcome =
   | { ok: true; data: FetchResult; at: Date }
   | { ok: false; error: string };
 
+export type DashboardEvent =
+  | { kind: "refresh"; outcome: RefreshOutcome }
+  | { kind: "reset"; state: DashboardState };
+
 export function applyRefresh(
   state: DashboardState,
   outcome: RefreshOutcome,
@@ -18,4 +22,12 @@ export function applyRefresh(
     return { data: outcome.data, error: null, lastUpdated: outcome.at };
   }
   return { ...state, error: outcome.error };
+}
+
+export function applyEvent(
+  state: DashboardState,
+  event: DashboardEvent,
+): DashboardState {
+  if (event.kind === "reset") return event.state;
+  return applyRefresh(state, event.outcome);
 }

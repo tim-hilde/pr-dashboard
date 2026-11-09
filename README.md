@@ -1,8 +1,8 @@
 # pr-dashboard
 
-A read-only terminal dashboard for the open pull requests that you authored in the Merlin-Digital-Solutions organization.
+A read-only terminal dashboard for your open pull requests and every open pull request in the Merlin-Digital-Solutions organization.
 
-The dashboard shows one row per pull request. Each row lists the repository, the pull request number, the CI state, the Codex review state, and the title. A preview pane on the right shows details of the selected pull request. The preview hides when the terminal is narrower than 100 columns.
+The dashboard shows one row per pull request. Each row lists the pull request number, the CI state, the Codex review state, and the title. Your own view adds the repository to the row. The all-authors view adds the author and groups the rows by repository. A preview pane on the right shows details of the selected pull request. The preview hides when the terminal is narrower than 100 columns.
 
 ## Install
 
@@ -28,6 +28,7 @@ prs
 | `j`, `k` | Move down and up. |
 | `Enter`, `o` | Open the selected pull request in the browser. |
 | `a` | Open every listed pull request in the browser. |
+| `Tab` | Switch between your pull requests and all open pull requests in the organization. |
 | `c` | Open the Checks page of the selected pull request. |
 | `v` | Open the Codex review comment, when one exists. |
 | `p` | Toggle the preview pane. |
@@ -42,7 +43,8 @@ prs
 
 - The first start fetches the pull requests.
 - Later starts show the cache immediately.
-- The cache lives at `~/.cache/pr-dashboard/prs.json`.
+- The mine cache lives at `~/.cache/pr-dashboard/prs.json`.
+- The all-authors cache lives at `~/.cache/pr-dashboard/prs-all.json`.
 - The cache refreshes every 60 seconds and on `r`.
 - The cache is local and read-only.
 

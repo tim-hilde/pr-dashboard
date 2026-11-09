@@ -48,21 +48,30 @@
                 "body": "This human comment quotes the marker <!-- codex-review --> but a human wrote it.",
                 "url": "https://github.com/Merlin-Digital-Solutions/merlin-dashboard/pull/876#issuecomment-3",
                 "createdAt": "2026-11-06T10:00:00Z",
-                "author": { "login": "octocat" }
+                "author": {
+                  "login": "octocat"
+                }
               },
               {
                 "body": "<!-- codex-security-review -->\n\n## Verdict\n\n**🔄 Request Changes** — address the security findings before merge.",
                 "url": "https://github.com/Merlin-Digital-Solutions/merlin-dashboard/pull/876#issuecomment-2",
                 "createdAt": "2026-11-06T09:45:00Z",
-                "author": { "login": "github-actions" }
+                "author": {
+                  "login": "github-actions"
+                }
               },
               {
                 "body": "<!-- codex-review -->\n\n## Verdict\n\n**🔄 Request Changes** — address both blocking findings before merge.\n\n## Required Changes\n\n- Add regression coverage for the callback path.\n- Cancel the job before the next step starts.\n\n## Notes\n\nNice work otherwise.",
                 "url": "https://github.com/Merlin-Digital-Solutions/merlin-dashboard/pull/876#issuecomment-1",
                 "createdAt": "2026-11-06T09:30:00Z",
-                "author": { "login": "github-actions" }
+                "author": {
+                  "login": "github-actions"
+                }
               }
             ]
+          },
+          "author": {
+            "login": "tim-hilde"
           }
         },
         {
@@ -103,9 +112,14 @@
                 "body": "<!-- codex-review -->\n\n## Verdict\n\n**[x] ✅ Approve** — No blocking findings from static review.\n\n## Required Changes\n\nNone.",
                 "url": "https://github.com/Merlin-Digital-Solutions/merlin-spricht/pull/930#issuecomment-4",
                 "createdAt": "2026-11-06T08:00:00Z",
-                "author": { "login": "github-actions" }
+                "author": {
+                  "login": "github-actions"
+                }
               }
             ]
+          },
+          "author": {
+            "login": "tim-hilde"
           }
         },
         {
@@ -131,6 +145,9 @@
           },
           "comments": {
             "nodes": []
+          },
+          "author": {
+            "login": "anna-schmidt"
           }
         }
       ]

@@ -1,10 +1,11 @@
 import { expect, test } from "bun:test";
-import { buildListRow, buildPreviewLines } from "../src/view";
+import { buildListRow, buildPreviewLines, authorCell } from "../src/view";
 import type { PullRequest } from "../src/types";
 
 const pr = (overrides: Partial<PullRequest> = {}): PullRequest => ({
   repo: "Merlin-Digital-Solutions/merlin-dashboard",
   repoShort: "merlin-dashboard",
+  author: "tim-hilde",
   number: 876,
   title: "feat(krise): let admins add web pages of approved domains",
   url: "https://github.com/Merlin-Digital-Solutions/merlin-dashboard/pull/876",
@@ -43,6 +44,21 @@ test("builds the preview", () => {
   expect(text).toContain("Codex ✗ Request Changes");
   expect(text).toContain("Required Changes");
   expect(text).toContain("• 🔴 [blocking] Mask numbers");
+});
+
+test("formats the author cell and adds the author to the preview on request", () => {
+  expect(authorCell("tim-hilde", 12)).toBe("@tim-hilde  ");
+  expect(authorCell("a-very-long-login", 8)).toBe("@a-very…");
+
+  const meta = buildPreviewLines(pr(), new Date("2026-11-06T12:00:00Z"), {
+    showAuthor: true,
+  }).find((line) => line.dim === true);
+  expect(meta?.text).toContain("@tim-hilde");
+
+  const hidden = buildPreviewLines(pr(), new Date("2026-11-06T12:00:00Z")).find(
+    (line) => line.dim === true,
+  );
+  expect(hidden?.text).not.toContain("@tim-hilde");
 });
 
 test("shows missing and stale Codex reviews", () => {

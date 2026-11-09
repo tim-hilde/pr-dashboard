@@ -5,13 +5,14 @@ import { join } from "node:path";
 import { PassThrough, Writable } from "node:stream";
 import { render, renderToString } from "ink";
 import { App } from "../src/app";
-import { writeCache } from "../src/cache";
+import { writeCache, allPrsCachePath } from "../src/cache";
 import type { FetchResult } from "../src/github";
 import type { PullRequest } from "../src/types";
 
 const sample: PullRequest = {
   repo: "Merlin-Digital-Solutions/merlin-dashboard",
   repoShort: "merlin-dashboard",
+  author: "tim-hilde",
   number: 876,
   title: "feat(krise): let admins add web pages of approved domains",
   url: "https://github.com/Merlin-Digital-Solutions/merlin-dashboard/pull/876",
@@ -41,6 +42,27 @@ const longSample: PullRequest = {
 };
 
 const result: FetchResult = { prs: [sample], total: 1 };
+const draftSample: PullRequest = {
+  ...sample,
+  number: 700,
+  title: "draft: rework the cache",
+  url: "https://github.com/Merlin-Digital-Solutions/merlin-dashboard/pull/700",
+  isDraft: true,
+};
+const otherSample: PullRequest = {
+  ...sample,
+  repo: "Merlin-Digital-Solutions/merlin-spricht",
+  repoShort: "merlin-spricht",
+  author: "anna-schmidt",
+  number: 930,
+  title: "feat(crisis): Krisentelefon",
+  url: "https://github.com/Merlin-Digital-Solutions/merlin-spricht/pull/930",
+};
+const allResult: FetchResult = {
+  prs: [sample, draftSample, otherSample],
+  total: 3,
+};
+const allLoad = async () => allResult;
 const emptyResult: FetchResult = { prs: [], total: 0 };
 const load = async () => result;
 const longLoad = async () => ({ prs: [longSample], total: 1 });
@@ -58,6 +80,8 @@ const countingLoad = async () => {
 
 const open = () => {};
 const now = () => new Date("2026-11-06T12:00:00Z");
+const stripAnsi = (text: string) =>
+  text.replace(/\u001b\[[0-9;]*[A-Za-z]/g, "");
 
 function renderLive(
   element: React.ReactElement,
@@ -117,8 +141,6 @@ function renderLive(
 }
 
 test("puts the status cells behind the pull request number", async () => {
-  const stripAnsi = (text: string) =>
-    text.replace(/\u001b\[[0-9;]*[A-Za-z]/g, "");
   const output = stripAnsi(
     await renderLive(
       <App
@@ -244,6 +266,163 @@ test("renders the rows once loading resolves", async () => {
   expect(output).toContain("merlin-dashboard");
   expect(output).toContain("#876");
   expect(output).toContain("✗");
+});
+
+function renderPress(
+  element: React.ReactElement,
+  key: string,
+  before: string,
+  after: string,
+  columns = 120,
+): Promise<string> {
+  return new Promise<string>((resolve, reject) => {
+    let output = "";
+    let pressed = false;
+    let finished = false;
+    const stdout = new Writable({
+      write(chunk, _encoding, callback) {
+        output += String(chunk);
+        callback();
+      },
+    }) as Writable & { columns: number; rows: number };
+    stdout.columns = columns;
+    stdout.rows = 40;
+    const stdin = new PassThrough() as PassThrough & {
+      setRawMode: (enabled: boolean) => PassThrough;
+      isTTY: boolean;
+    };
+    stdin.setRawMode = () => stdin;
+    stdin.isTTY = true;
+    const instance = render(element, {
+      stdout,
+      stdin,
+      stderr: new Writable({ write: (_c, _e, cb) => cb() }),
+      patchConsole: false,
+      debug: true,
+    });
+    const finish = (failure?: string) => {
+      if (finished) return;
+      finished = true;
+      clearInterval(timer);
+      clearTimeout(timeout);
+      instance.unmount();
+      void instance.waitUntilExit().then(
+        () => (failure === undefined ? resolve(output) : reject(new Error(failure))),
+        reject,
+      );
+    };
+    const timer = setInterval(() => {
+      if (!output.includes(before)) return;
+      if (!pressed) {
+        pressed = true;
+        stdin.write(key);
+        return;
+      }
+      if (output.includes(after)) finish();
+    }, 20);
+    const timeout = setTimeout(() => {
+      finish(`renderPress timed out: ${JSON.stringify(output)}`);
+    }, 2_000);
+  });
+}
+
+test("keeps the author column hidden in mine mode", async () => {
+  const output = await renderLive(
+    <App
+      load={load}
+      open={open}
+      now={now}
+      intervalMs={60_000}
+      cachePath={null}
+    />,
+    80,
+  );
+  expect(output).not.toContain("@tim-hilde");
+});
+
+test("removes the author filter on Tab and groups by repository", async () => {
+  const output = stripAnsi(
+    await renderPress(
+      <App
+        load={load}
+        loadAll={allLoad}
+        open={open}
+        now={now}
+        intervalMs={60_000}
+        cachePath={null}
+      />,
+      "\t",
+      "#876",
+      "@anna-schmidt",
+      80,
+    ),
+  );
+  expect(output).toContain("alle Autoren");
+  expect(output).toContain("@tim-hilde");
+  expect(output).toContain("@anna-schmidt");
+  expect(output).toContain("  OPEN  1");
+  expect(output).toContain("  DRAFT  1");
+
+  const allPart = output.slice(output.lastIndexOf("alle Autoren"));
+  expect(allPart.indexOf("merlin-dashboard")).toBeLessThan(
+    allPart.indexOf("merlin-spricht"),
+  );
+  expect(allPart.indexOf("merlin-dashboard")).toBeLessThan(
+    allPart.indexOf("#876"),
+  );
+});
+
+test("shows the cached all-authors rows on Tab without fetching", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "prs-app-cache-"));
+  const cachePath = join(dir, "prs.json");
+  writeCache(cachePath, {
+    version: 1,
+    fetchedAt: "2026-11-06T12:00:00.000Z",
+    result: {
+      prs: [{ ...sample, number: 111, title: "mine row" }],
+      total: 1,
+    },
+  });
+  writeCache(allPrsCachePath(cachePath), {
+    version: 1,
+    fetchedAt: "2026-11-06T12:00:00.000Z",
+    result: {
+      prs: [
+        { ...sample, number: 222, title: "all row", author: "anna-schmidt" },
+      ],
+      total: 1,
+    },
+  });
+  let calls = 0;
+  const mineLoad = async () => {
+    calls += 1;
+    return result;
+  };
+  const countedAllLoad = async () => {
+    calls += 1;
+    return allResult;
+  };
+  try {
+    const output = await renderPress(
+      <App
+        load={mineLoad}
+        loadAll={countedAllLoad}
+        open={open}
+        now={now}
+        intervalMs={60_000}
+        cachePath={cachePath}
+        cacheTtlMs={60_000}
+      />,
+      "\t",
+      "#111",
+      "#222",
+      80,
+    );
+    expect(output).toContain("#222");
+    expect(calls).toBe(0);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });
 
 test("renders the preview pane header line once per frame", async () => {

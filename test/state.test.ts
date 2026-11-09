@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import type { FetchResult } from "../src/github";
-import { applyRefresh } from "../src/state";
+import { applyEvent, applyRefresh } from "../src/state";
 import type { DashboardState } from "../src/state";
 
 const result: FetchResult = { prs: [], total: 0 };
@@ -28,4 +28,14 @@ test("a first failure keeps the data null and sets the error", () => {
     { ok: false, error: "HTTP 502" },
   );
   expect(state).toEqual({ data: null, error: "HTTP 502", lastUpdated: null });
+});
+
+test("a reset replaces the whole state", () => {
+  const reset: DashboardState = { data: result, error: null, lastUpdated: at };
+  expect(
+    applyEvent(
+      { data: null, error: "HTTP 502", lastUpdated: null },
+      { kind: "reset", state: reset },
+    ),
+  ).toEqual(reset);
 });
