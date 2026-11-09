@@ -38,8 +38,15 @@ export type RawComment = {
 };
 
 export type RawCheckContext =
-  | { __typename: "CheckRun"; name: string; conclusion: string | null; detailsUrl?: string | null }
-  | { __typename: "StatusContext"; context: string; state: string; targetUrl?: string | null };
+  | {
+      __typename: "CheckRun";
+      name: string;
+      status: string | null;
+      conclusion: string | null;
+      startedAt?: string | null;
+      detailsUrl?: string | null;
+    }
+  | { __typename: "StatusContext"; context: string; state: string; createdAt?: string | null; targetUrl?: string | null };
 
 export type RawStatusCheckRollup = {
   state: string | null;

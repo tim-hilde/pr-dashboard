@@ -37,8 +37,8 @@ query($q: String!) {
                 contexts(first: 50) {
                   nodes {
                     __typename
-                    ... on CheckRun { name conclusion detailsUrl }
-                    ... on StatusContext { context state targetUrl }
+                    ... on CheckRun { name status conclusion detailsUrl startedAt }
+                    ... on StatusContext { context state createdAt targetUrl }
                   }
                 }
               }

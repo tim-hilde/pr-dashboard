@@ -27,13 +27,19 @@
                           "__typename": "CheckRun",
                           "name": "unit",
                           "conclusion": "FAILURE",
-                          "detailsUrl": "https://github.com/example/actions/runs/1"
+                          "detailsUrl": "https://github.com/example/actions/runs/1",
+                          "workflowName": "ci",
+                          "startedAt": "2026-11-06T09:55:00Z",
+                          "status": "COMPLETED"
                         },
                         {
                           "__typename": "CheckRun",
                           "name": "lint",
                           "conclusion": "FAILURE",
-                          "detailsUrl": "https://github.com/example/actions/runs/2"
+                          "detailsUrl": "https://github.com/example/actions/runs/2",
+                          "workflowName": "ci",
+                          "startedAt": "2026-11-06T09:55:00Z",
+                          "status": "COMPLETED"
                         }
                       ]
                     }
@@ -53,7 +59,7 @@
                 }
               },
               {
-                "body": "<!-- codex-security-review -->\n\n## Verdict\n\n**🔄 Request Changes** — address the security findings before merge.",
+                "body": "<!-- codex-security-review -->\n\n## Verdict\n\n**\ud83d\udd04 Request Changes** \u2014 address the security findings before merge.",
                 "url": "https://github.com/Merlin-Digital-Solutions/merlin-dashboard/pull/876#issuecomment-2",
                 "createdAt": "2026-11-06T09:45:00Z",
                 "author": {
@@ -61,7 +67,7 @@
                 }
               },
               {
-                "body": "<!-- codex-review -->\n\n## Verdict\n\n**🔄 Request Changes** — address both blocking findings before merge.\n\n## Required Changes\n\n- Add regression coverage for the callback path.\n- Cancel the job before the next step starts.\n\n## Notes\n\nNice work otherwise.",
+                "body": "<!-- codex-review -->\n\n## Verdict\n\n**\ud83d\udd04 Request Changes** \u2014 address both blocking findings before merge.\n\n## Required Changes\n\n- Add regression coverage for the callback path.\n- Cancel the job before the next step starts.\n\n## Notes\n\nNice work otherwise.",
                 "url": "https://github.com/Merlin-Digital-Solutions/merlin-dashboard/pull/876#issuecomment-1",
                 "createdAt": "2026-11-06T09:30:00Z",
                 "author": {
@@ -76,7 +82,7 @@
         },
         {
           "number": 930,
-          "title": "feat(crisis): Krisentelefon als Schicht auf dem Bürgertelefon",
+          "title": "feat(crisis): Krisentelefon als Schicht auf dem B\u00fcrgertelefon",
           "isDraft": true,
           "url": "https://github.com/Merlin-Digital-Solutions/merlin-spricht/pull/930",
           "updatedAt": "2026-11-06T09:00:00Z",
@@ -97,7 +103,10 @@
                         {
                           "__typename": "CheckRun",
                           "name": "unit",
-                          "conclusion": null
+                          "conclusion": null,
+                          "workflowName": "ci",
+                          "startedAt": "2026-11-06T09:55:00Z",
+                          "status": "IN_PROGRESS"
                         }
                       ]
                     }
@@ -109,7 +118,7 @@
           "comments": {
             "nodes": [
               {
-                "body": "<!-- codex-review -->\n\n## Verdict\n\n**[x] ✅ Approve** — No blocking findings from static review.\n\n## Required Changes\n\nNone.",
+                "body": "<!-- codex-review -->\n\n## Verdict\n\n**[x] \u2705 Approve** \u2014 No blocking findings from static review.\n\n## Required Changes\n\nNone.",
                 "url": "https://github.com/Merlin-Digital-Solutions/merlin-spricht/pull/930#issuecomment-4",
                 "createdAt": "2026-11-06T08:00:00Z",
                 "author": {
