@@ -84,7 +84,7 @@ export function writeSharedPullRequests(
     };
     try {
       mkdirSync(dirname(path), { recursive: true, mode: 0o700 });
-      const temporary = `${path}.tmp`;
+      const temporary = `${path}.${process.pid}.tmp`;
       writeFileSync(temporary, JSON.stringify(record), { mode: 0o600 });
       renameSync(temporary, path);
     } catch {
