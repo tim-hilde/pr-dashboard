@@ -6,7 +6,7 @@ export const THEME = {
   border: "#cba6f7",
   accent: "#89b4fa",
   heading: "#89b4fa",
-  subheading: "#b4befe",
+  subheading: "#fab387",
   green: "#a6e3a1",
   yellow: "#f9e2af",
   red: "#f38ba8",

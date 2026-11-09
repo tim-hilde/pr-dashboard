@@ -15,7 +15,7 @@ test("uses the catppuccin mocha fzf palette", () => {
 
 test("gives the headings their own colors, apart from the mauve marker", () => {
   expect(THEME.heading).toBe("#89b4fa");
-  expect(THEME.subheading).toBe("#b4befe");
+  expect(THEME.subheading).toBe("#fab387");
   expect(THEME.heading).not.toBe(THEME.border);
   expect(THEME.subheading).not.toBe(THEME.border);
 });
